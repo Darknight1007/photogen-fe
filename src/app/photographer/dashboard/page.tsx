@@ -5,46 +5,34 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { eventsApi, Event } from "@/lib/api";
 
-interface User {
-  id: string;
-  phone: string;
-  name: string;
-  email: string;
-  role: string;
-  avatar: string | null;
-}
+/* ─── Global Styles ──────────────────────────────────────────────────────── */
+const Styles = () => (
+  <style>{`
+  `}</style>
+);
+
+interface User { id: string; phone: string; name: string; email: string; role: string; avatar: string | null; }
 
 export default function PhotographerDashboard() {
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showCreate, setShowCreate] = useState(false);
 
   const fetchEvents = useCallback(async () => {
     const { data } = await eventsApi.getAll({ limit: 50 });
-    if (data) {
-      setEvents(data.events);
-    }
+    if (data) setEvents(data.events);
     setLoading(false);
   }, []);
 
   useEffect(() => {
-    const storedUser = localStorage.getItem("user");
-    const token = localStorage.getItem("token");
-
-    if (!token || !storedUser) {
-      router.push("/photographer/login");
-      return;
-    }
-
-    const parsedUser = JSON.parse(storedUser);
-    if (parsedUser.role !== "PHOTOGRAPHER") {
-      router.push("/photographer/login");
-      return;
-    }
-
-    setUser(parsedUser);
+    const s = localStorage.getItem("user");
+    const t = localStorage.getItem("token");
+    if (!t || !s) { router.push("/photographer/login"); return; }
+    const p = JSON.parse(s);
+    if (p.role !== "PHOTOGRAPHER") { router.push("/photographer/login"); return; }
+    setUser(p);
     fetchEvents();
   }, [router, fetchEvents]);
 
@@ -54,276 +42,323 @@ export default function PhotographerDashboard() {
     router.push("/");
   };
 
-  const totalPhotos = events.reduce((sum, e) => sum + e.imageCount, 0);
-  const totalParticipants = events.reduce((sum, e) => sum + e.participantCount, 0);
-  const activeEvents = events.filter((e) => e.isActive);
-  const archivedEvents = events.filter((e) => !e.isActive);
+  const totalPhotos = events.reduce((s, e) => s + e.imageCount, 0);
+  const totalGuests = events.reduce((s, e) => s + e.participantCount, 0);
+  const activeEvents = events.filter(e => e.isActive);
+  const archivedEvents = events.filter(e => !e.isActive);
 
-  if (!user) {
-    return (
-      <div className="min-h-screen bg-pattern flex items-center justify-center">
-        <div className="animate-pulse text-muted">Loading...</div>
+  if (!user) return (
+    <>
+      <Styles />
+      <div style={{ minHeight: "100vh", background: "#080807", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <div className="spinner" style={{ width: 32, height: 32, borderWidth: 3 }} />
       </div>
-    );
-  }
+    </>
+  );
 
   return (
-    <main className="min-h-screen bg-pattern">
-      {/* Header */}
-      <header className="border-b border-border bg-secondary/50 backdrop-blur-md sticky top-0 z-50">
-        <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
-          <h1 className="text-xl font-bold">
-            Photo<span className="gradient-text">Gen</span>
-          </h1>
-          <div className="flex items-center gap-4">
-            <span className="text-muted text-sm">Hi, {user.name}</span>
-            <button
-              onClick={handleLogout}
-              className="text-sm text-muted hover:text-foreground transition-colors"
-            >
-              Logout
-            </button>
+    <>
+      <Styles />
+
+      {/* NAV */}
+      <nav className="nav">
+        <div className="nav-inner">
+          <div className="logo">
+            <div className="logo-mark">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ color: "var(--gold)" }}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                <circle cx="12" cy="13" r="3" />
+              </svg>
+            </div>
+            <span className="logo-text">PhotoGen</span>
+            <span className="logo-badge">Studio</span>
+          </div>
+          <div className="nav-right">
+            <div className="avatar">{user.name?.charAt(0)?.toUpperCase()}</div>
+            <button className="btn-pill" onClick={handleLogout}>Sign out</button>
           </div>
         </div>
-      </header>
+      </nav>
 
-      {/* Main Content */}
-      <div className="max-w-6xl mx-auto px-6 py-8">
-        <div className="flex items-center justify-between mb-8">
+      {/* MAIN — full bleed, generous side padding */}
+      <main style={{ padding: "56px 48px 80px" }}>
+
+        {/* HERO */}
+        <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", marginBottom: 52, flexWrap: "wrap", gap: 20 }} className="fade-up d1">
           <div>
-            <h2 className="text-3xl font-bold mb-2">Welcome back, {user.name}! 📸</h2>
-            <p className="text-muted">Manage your events and photos</p>
+            <p style={{ fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.18em", textTransform: "uppercase", color: "var(--dim)", marginBottom: 14 }}>
+              Studio Dashboard
+            </p>
+            <h1 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(36px, 4.5vw, 56px)", fontWeight: 300, fontStyle: "italic", lineHeight: 1.1, color: "var(--cream)", letterSpacing: "-0.01em" }}>
+              Welcome back,<br />
+              <span style={{ fontStyle: "normal", fontWeight: 600, color: "var(--gold2)" }}>{user.name}</span>
+            </h1>
+            <p style={{ fontSize: 13, fontWeight: 300, color: "var(--muted)", marginTop: 12, letterSpacing: "0.02em" }}>
+              Your studio. Your vision. Every frame counted.
+            </p>
           </div>
-          <button
-            onClick={() => setShowCreateModal(true)}
-            className="btn btn-primary !w-auto !px-6"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+          <button className="btn-gold" onClick={() => setShowCreate(true)}>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m6-6H6" />
             </svg>
-            Create Event
+            New Event
           </button>
         </div>
 
-        {/* Quick Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className="card !p-6">
-            <div className="text-muted text-sm mb-1">Total Events</div>
-            <div className="text-3xl font-bold">{events.length}</div>
+        {/* STATS */}
+        <div className="stats-grid fade-up d2">
+          <div className="stat">
+            <div className="stat-label">Total Events</div>
+            <div className="stat-value">{events.length}</div>
           </div>
-          <div className="card !p-6">
-            <div className="text-muted text-sm mb-1">Photos Uploaded</div>
-            <div className="text-3xl font-bold">{totalPhotos}</div>
+          <div className="stat">
+            <div className="stat-label">Photos Taken</div>
+            <div className="stat-value"><span>{totalPhotos.toLocaleString()}</span></div>
           </div>
-          <div className="card !p-6">
-            <div className="text-muted text-sm mb-1">Total Participants</div>
-            <div className="text-3xl font-bold">{totalParticipants}</div>
+          <div className="stat">
+            <div className="stat-label">Guests Served</div>
+            <div className="stat-value">{totalGuests.toLocaleString()}</div>
           </div>
         </div>
 
-        {/* Events List */}
-        {loading ? (
-          <div className="card text-center py-12">
-            <div className="animate-pulse text-muted">Loading events...</div>
-          </div>
-        ) : events.length === 0 ? (
-          <div className="card text-center py-12">
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary/10 mb-4">
-              <svg className="w-8 h-8 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-              </svg>
+        {/* EVENTS */}
+        <div className="fade-up d3">
+          {loading ? (
+            <div style={{ textAlign: "center", padding: "80px 0" }}>
+              <div className="spinner" style={{ width: 32, height: 32, margin: "0 auto 16px" }} />
+              <p style={{ fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--dim)" }}>Loading events</p>
             </div>
-            <h3 className="text-xl font-semibold mb-2">Create Your First Event</h3>
-            <p className="text-muted mb-6 max-w-md mx-auto">
-              Start by creating an event. Upload photos and let attendees find themselves instantly.
-            </p>
-            <button
-              onClick={() => setShowCreateModal(true)}
-              className="btn btn-primary !w-auto !px-8"
-            >
-              Create Event
-            </button>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            <h3 className="text-xl font-semibold">Your Events</h3>
-            <div className="space-y-10">
 
-              <div>
-                <h3 className="text-xl font-semibold mb-4">Active Events</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {activeEvents.map((event) => (
-                    <EventCard key={event.id} event={event} onUpdate={fetchEvents} />
-                  ))}
-                </div>
+          ) : events.length === 0 ? (
+            <div className="empty">
+              <div className="empty-grid" />
+              <div className="empty-icon">📷</div>
+              <h3 className="empty-title">No events yet</h3>
+              <p className="empty-sub">Create your first event to start uploading photos and letting AI find your guests instantly.</p>
+              <button className="btn-gold" style={{ margin: "0 auto" }} onClick={() => setShowCreate(true)}>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m6-6H6" />
+                </svg>
+                Create Event
+              </button>
+            </div>
+
+          ) : (
+            <>
+              {/* ACTIVE */}
+              <div className="section-heading">
+                <span className="section-heading-text">Active</span>
+                {activeEvents.length > 0 && <span className="section-heading-count">{activeEvents.length}</span>}
+                <div className="section-heading-line" />
               </div>
 
-              <div className="pt-6 border-t border-border">
-                <h3 className="text-xl font-semibold mb-4">Archived Albums</h3>
+              {activeEvents.length === 0 ? (
+                <div className="empty-inline">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ color: "var(--dim)" }}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                  </svg>
+                  <span>No active events — <button className="link-btn" onClick={() => setShowCreate(true)}>create one</button></span>
+                </div>
+              ) : (
+                <div className="events-grid">
+                  {activeEvents.map((event, i) => (
+                    <EventCard key={event.id} event={event} onUpdate={fetchEvents} index={i} />
+                  ))}
+                </div>
+              )}
+
+              {/* ARCHIVED — always visible */}
+              <div className="archived-section">
+                <div className="section-heading">
+                  <span className="section-heading-text">Archived</span>
+                  {archivedEvents.length > 0 && <span className="section-heading-count">{archivedEvents.length}</span>}
+                  <div className="section-heading-line" />
+                </div>
 
                 {archivedEvents.length === 0 ? (
-                  <div className="card text-center py-8 text-muted">
-                    No archived albums yet
+                  <div className="empty-inline">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ color: "var(--dim)" }}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
+                    </svg>
+                    <span>No archived albums yet — archive an event from its menu to store it here</span>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {archivedEvents.map((event) => (
-                      <EventCard key={event.id} event={event} onUpdate={fetchEvents} />
-                    ))}
+                  <div className="archived-grid-wrap">
+                    <div className="events-grid">
+                      {archivedEvents.map((event, i) => (
+                        <EventCard key={event.id} event={event} onUpdate={fetchEvents} index={i} />
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>
+            </>
+          )}
+        </div>
+      </main>
 
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Create Event Modal */}
-      {showCreateModal && (
-        <CreateEventModal
-          onClose={() => setShowCreateModal(false)}
-          onSuccess={() => {
-            setShowCreateModal(false);
-            fetchEvents();
-          }}
+      {showCreate && (
+        <CreateModal
+          onClose={() => setShowCreate(false)}
+          onSuccess={() => { setShowCreate(false); fetchEvents(); }}
         />
       )}
-    </main>
+    </>
   );
 }
 
-function EventCard({ event, onUpdate }: { event: Event; onUpdate: () => void }) {
-  const [showMenu, setShowMenu] = useState(false);
+/* ─── EVENT CARD ─────────────────────────────────────────────────────────── */
+function EventCard({ event, onUpdate, index }: { event: Event; onUpdate: () => void; index: number }) {
+  const [menu, setMenu] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
-  const handleDelete = async () => {
-    if (!confirm("Are you sure you want to delete this event? This action cannot be undone.")) {
-      return;
-    }
-    setDeleting(true);
-    await eventsApi.delete(event.id);
-    onUpdate();
-  };
+  // Classify state
+  const isArchived = !event.isActive;
+  const cardClass = `ev-card fade-up${isArchived ? " archived" : ""}`;
 
-  const handleToggleActive = async () => {
-    await eventsApi.update(event.id, { isActive: !event.isActive });
-    onUpdate();
-    setShowMenu(false);
-  };
-
-  const formatDate = (dateString: string | null) => {
-    if (!dateString) return "No date set";
-    return new Date(dateString).toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-    });
-  };
+  const dateStr = new Date(event.eventDate || event.createdAt).toLocaleDateString("en-US", {
+    month: "short", day: "numeric", year: "numeric",
+  });
 
   return (
-    <div className="card !p-0 overflow-hidden group">
-      {/* Cover Image */}
-      <div className="h-32 bg-gradient-to-br from-primary/20 to-accent/20 relative">
+    <div
+      className={cardClass}
+      style={{ animationDelay: `${index * 55}ms` }}
+    >
+      {/* THUMBNAIL */}
+      <div className="ev-thumb">
         {event.coverImage && (
           // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={event.coverImage}
-            alt={event.name}
-            className="w-full h-full object-cover"
-          />
+          <img src={event.coverImage} alt={event.name} />
         )}
-        <div className="absolute top-3 right-3">
-          <div className="relative">
+        <div className="ev-thumb-grid" />
+        <div className="ev-thumb-fade" />
+
+        {/* Top bar: status + menu */}
+        <div className="ev-thumb-top">
+          {/* Status badge */}
+          {event.isActive ? (
+            <span className="badge badge-live">Live</span>
+          ) : (
+            <span className="badge badge-archived">Archived</span>
+          )}
+
+          {/* Context menu */}
+          <div className="dropdown-wrap">
             <button
-              onClick={() => setShowMenu(!showMenu)}
-              className="w-8 h-8 bg-black/50 backdrop-blur rounded-lg flex items-center justify-center hover:bg-black/70 transition-colors"
+              className="icon-btn"
+              style={{ background: "rgba(8,8,7,0.6)", backdropFilter: "blur(8px)" }}
+              onClick={(e) => { e.stopPropagation(); setMenu(!menu); }}
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                <circle cx="12" cy="5" r="1.2" fill="currentColor" />
+                <circle cx="12" cy="12" r="1.2" fill="currentColor" />
+                <circle cx="12" cy="19" r="1.2" fill="currentColor" />
               </svg>
             </button>
-            {showMenu && (
-              <div className="absolute right-0 top-10 bg-secondary border border-border rounded-lg shadow-xl py-2 min-w-[160px] z-10">
+
+            {menu && (
+              <div className="dropdown" onClick={(e) => e.stopPropagation()}>
                 <Link
                   href={`/photographer/events/${event.id}`}
-                  className="block px-4 py-2 text-sm hover:bg-border/50 transition-colors"
+                  className="dropdown-item"
+                  onClick={() => setMenu(false)}
                 >
-                  View Details
+                  View event
                 </Link>
                 <button
-                  onClick={handleToggleActive}
-                  className="block w-full text-left px-4 py-2 text-sm hover:bg-border/50 transition-colors"
+                  className="dropdown-item"
+                  onClick={() => {
+                    eventsApi.update(event.id, { isActive: !event.isActive }).then(onUpdate);
+                    setMenu(false);
+                  }}
                 >
-                  {event.isActive ? "Archive Event" : "Restore Event"}
+                  {event.isActive ? "Archive" : "Restore"}
                 </button>
+                <div className="dropdown-divider" />
                 <button
-                  onClick={handleToggleActive}
-                  className="block w-full text-left px-4 py-2 text-sm hover:bg-border/50 transition-colors"
-                >
-                  {event.isActive ? "Deactivate" : "Activate"}
-                </button>
-                <button
-                  onClick={handleDelete}
+                  className="dropdown-item danger"
                   disabled={deleting}
-                  className="block w-full text-left px-4 py-2 text-sm text-error hover:bg-error/10 transition-colors"
+                  onClick={async () => {
+                    if (window.confirm("Permanently delete this event and all its photos?")) {
+                      setDeleting(true);
+                      const res = await eventsApi.delete(event.id);
+                      if (res.error) {
+                        alert(res.error);
+                        setDeleting(false);
+                      } else {
+                        onUpdate();
+                      }
+                    }
+                  }}
                 >
-                  {deleting ? "Deleting..." : "Delete"}
+                  {deleting ? "Deleting…" : "Delete"}
                 </button>
               </div>
             )}
           </div>
         </div>
-        {!event.isActive && (
-          <div className="absolute top-3 left-3">
-            <span className="px-2 py-1 bg-muted/80 backdrop-blur text-xs rounded-md">
-              Inactive
-            </span>
-          </div>
-        )}
       </div>
 
-      {/* Content */}
-      <div className="p-5">
-        <h4 className="font-semibold text-lg mb-1 truncate">{event.name}</h4>
-        <p className="text-muted text-sm mb-4">
-          {event.location || formatDate(event.eventDate)}
-        </p>
-
-        {/* Stats */}
-        <div className="flex items-center gap-4 text-sm">
-          <div className="flex items-center gap-1.5 text-muted">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-            </svg>
-            {event.imageCount} photos
-          </div>
-          <div className="flex items-center gap-1.5 text-muted">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
-            </svg>
-            {event.participantCount}
+      {/* BODY */}
+      <div className="ev-body">
+        {/* Name */}
+        <div>
+          <h4 className="ev-name">
+            <Link href={`/photographer/events/${event.id}`}>{event.name}</Link>
+          </h4>
+          <div className="ev-meta" style={{ marginTop: 5 }}>
+            {event.location && (
+              <>
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                {event.location}
+                <span className="ev-meta-dot" />
+              </>
+            )}
+            {dateStr}
           </div>
         </div>
 
-        {/* Event Code */}
-        <div className="mt-4 pt-4 border-t border-border">
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="text-xs text-muted mb-1">Event Code</div>
-              <code className="text-sm font-mono bg-primary/10 text-primary px-2 py-1 rounded">
-                {event.code}
-              </code>
-            </div>
+        {/* Mini stats */}
+        <div className="ev-mini-stats">
+          <div className="ev-mini">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+              <circle cx="12" cy="13" r="3" />
+            </svg>
+            <strong>{event.imageCount}</strong> photos
+          </div>
+          <div className="ev-mini">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0" />
+            </svg>
+            <strong>{event.participantCount}</strong> guests
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="ev-footer">
+          <code className="tag-gold">{event.code}</code>
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
             <button
-              onClick={() => navigator.clipboard.writeText(event.code)}
-              className="text-muted hover:text-foreground transition-colors"
+              className="icon-btn"
               title="Copy code"
+              onClick={(e) => { e.preventDefault(); navigator.clipboard.writeText(event.code); }}
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
               </svg>
             </button>
+            <Link href={`/photographer/events/${event.id}`}>
+              <button className="icon-btn" title="Open event">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                </svg>
+              </button>
+            </Link>
           </div>
         </div>
       </div>
@@ -331,13 +366,8 @@ function EventCard({ event, onUpdate }: { event: Event; onUpdate: () => void }) 
   );
 }
 
-function CreateEventModal({
-  onClose,
-  onSuccess,
-}: {
-  onClose: () => void;
-  onSuccess: () => void;
-}) {
+/* ─── CREATE MODAL ───────────────────────────────────────────────────────── */
+function CreateModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: () => void }) {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [location, setLocation] = useState("");
@@ -345,138 +375,76 @@ function CreateEventModal({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError("");
-
-    if (!name.trim()) {
-      setError("Event name is required");
-      return;
-    }
-
-    setLoading(true);
-
-    const { data, error: apiError } = await eventsApi.create({
+    if (!name.trim()) { setError("Event name is required."); return; }
+    setLoading(true); setError("");
+    const { error: err } = await eventsApi.create({
       name: name.trim(),
       description: description.trim() || undefined,
       location: location.trim() || undefined,
       eventDate: eventDate || undefined,
     });
-
-    if (apiError) {
-      setError(apiError);
-      setLoading(false);
-      return;
-    }
-
-    if (data) {
-      onSuccess();
-    }
+    if (err) { setError(err); setLoading(false); return; }
+    onSuccess();
   };
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-6 z-50">
-      <div className="card w-full max-w-lg animate-fade-in">
-        <div className="flex items-center justify-between mb-6">
-          <h3 className="text-xl font-semibold">Create New Event</h3>
-          <button
-            onClick={onClose}
-            className="text-muted hover:text-foreground transition-colors"
-          >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+    <div className="overlay" onClick={onClose}>
+      <div className="modal" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-header">
+          <div>
+            <h2 className="modal-title">New Event</h2>
+            <p style={{ fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: "0.1em", color: "var(--dim)", marginTop: 4 }}>Set up your album in seconds</p>
+          </div>
+          <button className="modal-close" onClick={onClose}>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
         </div>
 
-        {error && (
-          <div className="bg-error/10 border border-error/20 rounded-lg p-3 mb-6 text-error text-sm">
-            {error}
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} className="space-y-5">
-          <div>
-            <label className="block text-sm font-medium mb-2">Event Name *</label>
-            <input
-              type="text"
-              placeholder="e.g., Wedding Reception"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              autoFocus
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium mb-2">Description</label>
-            <textarea
-              placeholder="Brief description of the event"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              rows={3}
-              className="w-full bg-secondary border border-border rounded-xl p-4 text-foreground resize-none focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium mb-2">Location</label>
-            <input
-              type="text"
-              placeholder="e.g., Grand Ballroom, Hotel XYZ"
-              value={location}
-              onChange={(e) => setLocation(e.target.value)}
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium mb-2">Event Date</label>
-
-            <div className="grid grid-cols-2 gap-3">
-
-              {/* Date Picker */}
-              <input
-                type="date"
-                value={eventDate.split("T")[0] || ""}
-                onChange={(e) =>
-                  setEventDate(`${e.target.value}${eventDate.includes("T") ? eventDate.slice(10) : "T00:00"}`)
-                }
-                className="w-full bg-secondary border border-border rounded-xl p-4 text-foreground focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
-              />
-
-              {/* Optional Time */}
-              <input
-                type="time"
-                value={eventDate.split("T")[1] || ""}
-                onChange={(e) =>
-                  setEventDate(`${eventDate.split("T")[0] || ""}T${e.target.value}`)
-                }
-                className="w-full bg-secondary border border-border rounded-xl p-4 text-foreground focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
-              />
-
+        <div className="modal-body">
+          {error && <div className="modal-error">⚠ {error}</div>}
+          <form onSubmit={submit}>
+            <div className="field">
+              <label className="field-label">Event name</label>
+              <input type="text" placeholder="Wedding, Birthday, Conference…" value={name} onChange={(e) => setName(e.target.value)} autoFocus />
             </div>
-          </div>
-
-          <div className="flex gap-3 pt-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="btn btn-secondary flex-1"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={loading || !name.trim()}
-              className="btn btn-primary flex-1"
-            >
-              {loading ? (
-                <span className="animate-pulse">Creating...</span>
-              ) : (
-                "Create Event"
-              )}
-            </button>
-          </div>
-        </form>
+            <div className="field">
+              <label className="field-label">Description <em>(optional)</em></label>
+              <textarea placeholder="A short description…" value={description} onChange={(e) => setDescription(e.target.value)} rows={2} />
+            </div>
+            <div className="field">
+              <label className="field-label">Location <em>(optional)</em></label>
+              <input type="text" placeholder="Venue or city…" value={location} onChange={(e) => setLocation(e.target.value)} />
+            </div>
+            <div className="field">
+              <label className="field-label">Date &amp; time <em>(optional)</em></label>
+              <div className="field-row">
+                <input
+                  type="date"
+                  value={eventDate.split("T")[0] || ""}
+                  onChange={(e) => setEventDate(`${e.target.value}${eventDate.includes("T") ? eventDate.slice(10) : "T00:00"}`)}
+                />
+                <input
+                  type="time"
+                  value={eventDate.split("T")[1] || ""}
+                  onChange={(e) => setEventDate(`${eventDate.split("T")[0] || ""}T${e.target.value}`)}
+                />
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button type="button" className="btn-cancel" onClick={onClose}>Cancel</button>
+              <button type="submit" className="btn-submit" disabled={loading || !name.trim()}>
+                {loading
+                  ? <span className="spinner" style={{ borderTopColor: "#1a1508", borderColor: "rgba(26,21,8,0.2)" }} />
+                  : "Create Event"
+                }
+              </button>
+            </div>
+          </form>
+        </div>
       </div>
     </div>
   );

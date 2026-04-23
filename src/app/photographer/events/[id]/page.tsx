@@ -5,574 +5,202 @@ import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
 import { eventsApi, imagesApi, Event, Image } from "@/lib/api";
 import BulkUploader from "@/components/BulkUploader";
+import { QRCodeSVG } from "qrcode.react";
 
 export default function EventDetailPage() {
-  const router = useRouter();
-  const params = useParams();
-  const eventId = params.id as string;
+  const router = useRouter(); const params = useParams(); const eventId = params.id as string;
+  const [event, setEvent] = useState<Event | null>(null); const [images, setImages] = useState<Image[]>([]); const [loading, setLoading] = useState(true);
+  const [showEdit, setShowEdit] = useState(false); const [showUploader, setShowUploader] = useState(false); const [copied, setCopied] = useState<string | null>(null);
+  const [selected, setSelected] = useState<Set<string>>(new Set()); const [deleting, setDeleting] = useState(false);
 
-  const [event, setEvent] = useState<Event | null>(null);
-  const [images, setImages] = useState<Image[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [showUploader, setShowUploader] = useState(false);
-  const [copied, setCopied] = useState(false);
-  const [selectedImages, setSelectedImages] = useState<Set<string>>(new Set());
-  const [deleting, setDeleting] = useState(false);
+  const fetchEvent = useCallback(async () => { const { data } = await eventsApi.getById(eventId); if (data) setEvent(data.event); else router.push("/photographer/dashboard"); setLoading(false); }, [eventId, router]);
+  const fetchImages = useCallback(async () => { const { data } = await imagesApi.getEventImages(eventId, { limit: 100 }); if (data) setImages(data.images); }, [eventId]);
+  useEffect(() => { if (!localStorage.getItem("token")) { router.push("/photographer/login"); return; } fetchEvent(); fetchImages(); }, [router, fetchEvent, fetchImages]);
 
-  const fetchEvent = useCallback(async () => {
-    const { data } = await eventsApi.getById(eventId);
-    if (data) {
-      setEvent(data.event);
-    } else {
-      router.push("/photographer/dashboard");
-    }
-    setLoading(false);
-  }, [eventId, router]);
+  const copy = (t: string, k: string) => { navigator.clipboard.writeText(t); setCopied(k); setTimeout(() => setCopied(null), 2000); };
+  const toggle = (id: string) => setSelected(p => { const s = new Set(p); s.has(id) ? s.delete(id) : s.add(id); return s; });
+  const selAll = () => selected.size === images.length ? setSelected(new Set()) : setSelected(new Set(images.map(i => i.id)));
+  const delSel = async () => { if (!selected.size || !confirm(`Delete ${selected.size} photos?`)) return; setDeleting(true); await imagesApi.bulkDelete(Array.from(selected)); setSelected(new Set()); fetchEvent(); fetchImages(); setDeleting(false); };
 
-  const fetchImages = useCallback(async () => {
-    const { data } = await imagesApi.getEventImages(eventId, { limit: 100 });
-    if (data) {
-      setImages(data.images);
-    }
-  }, [eventId]);
-
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (!token) {
-      router.push("/photographer/login");
-      return;
-    }
-    fetchEvent();
-    fetchImages();
-  }, [router, fetchEvent, fetchImages]);
-
-  const handleCopyCode = () => {
-    if (event) {
-      navigator.clipboard.writeText(event.code);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    }
-  };
-
-  const handleCopyLink = () => {
-    if (event) {
-      const link = `${window.location.origin}/join/${event.code}`;
-      navigator.clipboard.writeText(link);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    }
-  };
-
-  const handleToggleActive = async () => {
-    if (!event) return;
-    await eventsApi.update(event.id, { isActive: !event.isActive });
-    fetchEvent();
-  };
-
-  const handleDelete = async () => {
-    if (!event) return;
-    if (!confirm("Are you sure you want to delete this event? This action cannot be undone.")) {
-      return;
-    }
-    await eventsApi.delete(event.id);
-    router.push("/photographer/dashboard");
-  };
-
-  const handleUploadComplete = () => {
-    fetchEvent();
-    fetchImages();
-  };
-
-  const toggleImageSelection = (imageId: string) => {
-    setSelectedImages((prev) => {
-      const newSet = new Set(prev);
-      if (newSet.has(imageId)) {
-        newSet.delete(imageId);
-      } else {
-        newSet.add(imageId);
-      }
-      return newSet;
-    });
-  };
-
-  const selectAllImages = () => {
-    if (selectedImages.size === images.length) {
-      setSelectedImages(new Set());
-    } else {
-      setSelectedImages(new Set(images.map((img) => img.id)));
-    }
-  };
-
-  const deleteSelectedImages = async () => {
-    if (selectedImages.size === 0) return;
-    if (!confirm(`Delete ${selectedImages.size} selected photos?`)) return;
-
-    setDeleting(true);
-    await imagesApi.bulkDelete(Array.from(selectedImages));
-    setSelectedImages(new Set());
-    fetchEvent();
-    fetchImages();
-    setDeleting(false);
-  };
-
-  const formatDate = (dateString: string | null) => {
-    if (!dateString) return "Not set";
-    return new Date(dateString).toLocaleDateString("en-US", {
-      weekday: "long",
-      month: "long",
-      day: "numeric",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-pattern flex items-center justify-center">
-        <div className="animate-pulse text-muted">Loading event...</div>
-      </div>
-    );
-  }
-
-  if (!event) {
-    return null;
-  }
+  if (loading) return <div style={{ minHeight: "100vh", background: "#080807", display: "flex", alignItems: "center", justifyContent: "center" }}><div className="spinner" style={{ width: 32, height: 32 }} /></div>;
+  if (!event) return null;
 
   return (
-    <main className="min-h-screen bg-pattern">
-      {/* Header */}
-      <header className="border-b border-border bg-secondary/50 backdrop-blur-md sticky top-0 z-50">
-        <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Link
-              href="/photographer/dashboard"
-              className="text-muted hover:text-foreground transition-colors"
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
+    <>
+      <nav className="nav">
+        <div className="nav-inner">
+          <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+            <Link href="/photographer/dashboard" style={{ background: "none", border: "1px solid var(--border)", color: "var(--dim)", width: 30, height: 30, display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.2s", textDecoration: "none" }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" /></svg>
             </Link>
-            <h1 className="text-xl font-bold">
-              Photo<span className="gradient-text">Gen</span>
+            <div className="logo">
+              <div className="logo-mark"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ color: "var(--gold)" }}><path strokeLinecap="round" strokeLinejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /><circle cx="12" cy="13" r="3" /></svg></div>
+              <span className="logo-text">PhotoGen</span>
+              <span className="logo-badge">Studio</span>
+            </div>
+          </div>
+          <div className="nav-right">
+            <button className="btn-pill" onClick={() => setShowEdit(true)}>Edit</button>
+            <button className="btn-pill" onClick={() => eventsApi.update(event.id, { isActive: !event.isActive }).then(fetchEvent)}>
+              {event.isActive ? "Archive" : "Restore"}
+            </button>
+          </div>
+        </div>
+      </nav>
+
+      <main style={{ padding: "56px 48px 80px" }}>
+        {/* Header */}
+        <div className="fade-up d1" style={{ marginBottom: 48 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 4 }}>
+            <h1 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(36px, 4vw, 52px)", fontWeight: 300, fontStyle: "italic", lineHeight: 1.1, color: "var(--cream)" }}>
+              {event.name}
             </h1>
+            {!event.isActive && <span className="tag-dim">Archived</span>}
+          </div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 20, fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--dim)" }}>
+            {event.location && <span>✦ {event.location}</span>}
+            {event.eventDate && <span>✦ {new Date(event.eventDate).toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}</span>}
           </div>
         </div>
-      </header>
 
-      {/* Main Content */}
-      <div className="max-w-6xl mx-auto px-6 py-8">
-        {/* Event Header */}
-        <div className="flex flex-col md:flex-row md:items-start justify-between gap-6 mb-8">
-          <div className="flex-1">
-            <div className="flex items-center gap-3 mb-2">
-              <h2 className="text-3xl font-bold">{event.name}</h2>
-              {!event.isActive && (
-                <span className="px-2 py-1 bg-muted/20 text-muted text-sm rounded-md">
-                  Inactive
-                </span>
-              )}
-            </div>
-            {event.description && (
-              <p className="text-muted mb-4">{event.description}</p>
-            )}
-            <div className="flex flex-wrap items-center gap-4 text-sm text-muted">
-              {event.location && (
-                <div className="flex items-center gap-2">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                  </svg>
-                  {event.location}
+        {/* Stats */}
+        <div className="stats-grid fade-up d2">
+          <div className="stat"><div className="stat-label">Photos</div><div className="stat-value"><span>{event.imageCount}</span></div></div>
+          <div className="stat"><div className="stat-label">Guests</div><div className="stat-value">{event.participantCount}</div></div>
+          <div className="stat"><div className="stat-label">Status</div><div className="stat-value" style={{ fontSize: 28 }}>{event.isActive ? "Active" : "Archived"}</div></div>
+        </div>
+
+        {/* Share */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 40, alignItems: "center", border: "1px solid var(--border)", background: "var(--bg2)", padding: 40, borderRadius: 16, marginBottom: 48, position: "relative", overflow: "hidden" }} className="fade-up d3">
+          <div style={{ position: "absolute", inset: 0, opacity: 0.03, backgroundImage: `repeating-linear-gradient(45deg, var(--gold) 0px, var(--gold) 1px, transparent 1px, transparent 20px)` }} />
+          
+          <div style={{ position: "relative", zIndex: 1 }}>
+            <div style={{ fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--dim)", marginBottom: 16 }}>Share with guests</div>
+            
+            <div style={{ display: "flex", alignItems: "center", gap: 24, padding: "16px 24px", background: "rgba(8,8,7,0.4)", borderRadius: 12, border: "1px solid var(--border)", width: "fit-content" }}>
+              <div>
+                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                  <code style={{ fontFamily: "var(--font-display)", fontSize: 32, fontWeight: 400, color: "var(--cream)", letterSpacing: "0.08em" }}>{event.code}</code>
+                  <button className="icon-btn" onClick={() => copy(event.code, "code")} title="Copy code">
+                    {copied === "code" ? (
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                    ) : (
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+                    )}
+                  </button>
                 </div>
-              )}
-              <div className="flex items-center gap-2">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
-                {formatDate(event.eventDate)}
+              </div>
+              <div style={{ width: 1, height: 40, background: "var(--border)" }} />
+              <div>
+                <button className="btn-outline" onClick={() => copy(`${window.location.origin}/join/${event.code}`, "link")}>
+                  {copied === "link" ? "✓ Link Copied" : "Copy Share Link"}
+                </button>
               </div>
             </div>
           </div>
-
-          <div className="flex gap-3">
-            <button
-              onClick={() => setShowEditModal(true)}
-              className="btn btn-secondary !w-auto !px-5"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-              </svg>
-              Edit
-            </button>
-            <button
-              onClick={handleToggleActive}
-              className="btn btn-secondary !w-auto !px-5"
-            >
-              {event.isActive ? "Deactivate" : "Activate"}
-            </button>
+          
+          <div style={{ position: "relative", zIndex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 12 }}>
+            <div style={{ width: 160, height: 160, background: "#fff", padding: 12, borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 10px 30px rgba(0,0,0,0.5), 0 0 0 1px var(--gold-dim)" }}>
+              <QRCodeSVG value={`${typeof window !== "undefined" ? window.location.origin : ""}/join/${event.code}`} size={136} />
+            </div>
+            <div style={{ fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.15em", textTransform: "uppercase", color: "var(--dim)" }}>Scan to join</div>
           </div>
         </div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className="card !p-6">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
-                <svg className="w-6 h-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
-              </div>
-              <div>
-                <div className="text-muted text-sm">Photos</div>
-                <div className="text-2xl font-bold">{event.imageCount}</div>
-              </div>
+        {/* Photos */}
+        <div className="fade-up d4">
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 2 }}>
+            <div className="section-heading" style={{ marginTop: 0, flex: 1 }}>
+              <span className="section-heading-text">Photos</span>
+              {images.length > 0 && <span className="section-heading-count">{images.length}</span>}
+              {selected.size > 0 && <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--muted)" }}>· {selected.size} selected</span>}
+              <div className="section-heading-line" />
             </div>
-          </div>
-          <div className="card !p-6">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-xl bg-accent/10 flex items-center justify-center">
-                <svg className="w-6 h-6 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
-                </svg>
-              </div>
-              <div>
-                <div className="text-muted text-sm">Participants</div>
-                <div className="text-2xl font-bold">{event.participantCount}</div>
-              </div>
-            </div>
-          </div>
-          <div className="card !p-6">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-xl bg-success/10 flex items-center justify-center">
-                <svg className="w-6 h-6 text-success" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-              <div>
-                <div className="text-muted text-sm">Status</div>
-                <div className="text-2xl font-bold">{event.isActive ? "Active" : "Inactive"}</div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Share Section */}
-        <div className="card mb-8">
-          <h3 className="text-lg font-semibold mb-4">Share Event</h3>
-          <p className="text-muted text-sm mb-6">
-            Share this code or link with event attendees so they can find their photos.
-          </p>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Event Code */}
-            <div className="bg-secondary/50 rounded-xl p-6 text-center">
-              <div className="text-sm text-muted mb-6 mt-4">Event Code</div>
-              <code className="text-5xl font-mono font-bold tracking-wider text-primary">
-                {event.code}
-              </code>
-              <button
-                onClick={handleCopyCode}
-                className="mt-4 btn btn-secondary !py-2 !text-sm"
-              >
-                {copied ? "Copied!" : "Copy Code"}
-              </button>
-            </div>
-
-            {/* QR Code Placeholder */}
-            <div className="bg-secondary/50 rounded-xl p-6 text-center">
-              <div className="text-sm text-muted mb-2">Share Link</div>
-              <div className="w-32 h-32 mx-auto bg-white rounded-lg flex items-center justify-center mb-4">
-                <div className="text-muted text-xs">QR Code</div>
-              </div>
-              <button
-                onClick={handleCopyLink}
-                className="btn btn-secondary !py-2 !text-sm"
-              >
-                {copied ? "Copied!" : "Copy Link"}
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Photos Section */}
-        <div className="card mb-8">
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-4">
-              <h3 className="text-lg font-semibold">Photos</h3>
-              {selectedImages.size > 0 && (
-                <span className="text-sm text-muted">
-                  {selectedImages.size} selected
-                </span>
-              )}
-            </div>
-            <div className="flex items-center gap-3">
+            <div style={{ display: "flex", gap: 8 }}>
               {images.length > 0 && (
                 <>
-                  <button
-                    onClick={selectAllImages}
-                    className="text-sm text-muted hover:text-foreground transition-colors"
-                  >
-                    {selectedImages.size === images.length ? "Deselect All" : "Select All"}
-                  </button>
-                  {selectedImages.size > 0 && (
-                    <button
-                      onClick={deleteSelectedImages}
-                      disabled={deleting}
-                      className="btn !bg-error/10 !text-error hover:!bg-error hover:!text-white !w-auto !px-4 !py-2 !text-sm"
-                    >
-                      {deleting ? "Deleting..." : "Delete Selected"}
-                    </button>
-                  )}
+                  <button className="btn-pill" onClick={selAll}>{selected.size === images.length ? "Deselect" : "Select all"}</button>
+                  {selected.size > 0 && <button className="btn-danger-outline" style={{ fontSize: 10, padding: "6px 14px", borderRadius: 20 }} onClick={delSel} disabled={deleting}>{deleting ? "..." : "Delete"}</button>}
                 </>
               )}
-              <button
-                onClick={() => setShowUploader(true)}
-                className="btn btn-primary !w-auto !px-5 !py-2"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-                </svg>
-                Upload Photos
+              <button className="btn-gold" onClick={() => setShowUploader(true)} style={{ padding: "8px 16px", fontSize: 10 }}>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
+                Upload
               </button>
             </div>
           </div>
 
           {images.length === 0 ? (
-            <div className="text-center py-12 border-2 border-dashed border-border rounded-xl">
-              <div className="w-16 h-16 mx-auto bg-primary/10 rounded-2xl flex items-center justify-center mb-4">
-                <svg className="w-8 h-8 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
-              </div>
-              <h4 className="font-semibold mb-2">No photos yet</h4>
-              <p className="text-muted text-sm mb-4">
-                Upload photos to this event and let AI detect faces automatically.
-              </p>
-              <button
-                onClick={() => setShowUploader(true)}
-                className="btn btn-primary !w-auto !px-6"
-              >
-                Upload Photos
-              </button>
+            <div className="empty">
+              <div className="empty-grid" />
+              <div className="empty-icon">📸</div>
+              <h3 className="empty-title">No photos yet</h3>
+              <p className="empty-sub">Upload your event photos and let AI find faces automatically.</p>
+              <button className="btn-gold" style={{ margin: "0 auto" }} onClick={() => setShowUploader(true)}>Upload Photos</button>
             </div>
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
-              {images.map((image) => (
-                <div
-                  key={image.id}
-                  onClick={() => toggleImageSelection(image.id)}
-                  className={`relative aspect-square rounded-lg overflow-hidden cursor-pointer group ${
-                    selectedImages.has(image.id) ? "ring-2 ring-primary" : ""
-                  }`}
-                >
+            <div className="photo-grid">
+              {images.map(img => (
+                <div key={img.id} className="photo-cell" onClick={() => toggle(img.id)} style={{ outline: selected.has(img.id) ? "2px solid var(--gold)" : "none", outlineOffset: -2 }}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={image.url}
-                    alt=""
-                    className="w-full h-full object-cover"
-                  />
-                  
-                  {/* Selection Checkbox */}
-                  <div
-                    className={`absolute top-2 left-2 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${
-                      selectedImages.has(image.id)
-                        ? "bg-primary border-primary"
-                        : "border-white/70 bg-black/30 opacity-0 group-hover:opacity-100"
-                    }`}
-                  >
-                    {selectedImages.has(image.id) && (
-                      <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                      </svg>
-                    )}
+                  <img src={img.url} alt="" />
+                  <div style={{ position: "absolute", top: 8, left: 8, width: 20, height: 20, border: `2px solid ${selected.has(img.id) ? "var(--gold)" : "rgba(255,255,255,0.3)"}`, background: selected.has(img.id) ? "var(--gold)" : "rgba(0,0,0,0.4)", display: "flex", alignItems: "center", justifyContent: "center", opacity: selected.has(img.id) ? 1 : 0, transition: "opacity 0.2s" }}
+                    onMouseEnter={(e) => { if (!selected.has(img.id)) e.currentTarget.style.opacity = "1"; }}
+                    onMouseLeave={(e) => { if (!selected.has(img.id)) e.currentTarget.style.opacity = "0"; }}>
+                    {selected.has(img.id) && <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#1a1508" strokeWidth="3"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>}
                   </div>
-
-                  {/* Face Count Badge */}
-                  {image.faceCount > 0 && (
-                    <div className="absolute bottom-2 right-2 px-2 py-1 bg-black/60 backdrop-blur rounded text-xs text-white flex items-center gap-1">
-                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                      </svg>
-                      {image.faceCount}
-                    </div>
-                  )}
+                  {img.faceCount > 0 && <div style={{ position: "absolute", bottom: 6, right: 6, fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.08em", padding: "2px 6px", background: "rgba(0,0,0,0.6)", color: "var(--cream)", textTransform: "uppercase" }}>{img.faceCount} faces</div>}
                 </div>
               ))}
             </div>
           )}
         </div>
 
-        {/* Danger Zone */}
-        <div className="card border-error/20">
-          <h3 className="text-lg font-semibold text-error mb-4">Danger Zone</h3>
-          <p className="text-muted text-sm mb-4">
-            Once you delete an event, there is no going back. All photos and participant data will be permanently removed.
-          </p>
-          <button
-            onClick={handleDelete}
-            className="btn !bg-error/10 !text-error hover:!bg-error hover:!text-white !w-auto !px-5"
-          >
-            Delete Event
-          </button>
+        {/* Danger zone */}
+        <div style={{ marginTop: 60, paddingTop: 24, borderTop: "1px solid var(--border)" }} className="fade-up d5">
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <div>
+              <div style={{ fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--red)", marginBottom: 4 }}>Danger Zone</div>
+              <p style={{ fontSize: 13, fontWeight: 300, color: "var(--dim)" }}>Permanently removes all photos and data.</p>
+            </div>
+            <button className="btn-danger-outline" onClick={async () => {
+              if (window.confirm("Delete permanently?")) {
+                const res = await eventsApi.delete(event.id);
+                if (res.error) {
+                  alert(res.error);
+                } else {
+                  router.push("/photographer/dashboard");
+                }
+              }
+            }}>Delete Event</button>
+          </div>
         </div>
-      </div>
+      </main>
 
-      {/* Edit Modal */}
-      {showEditModal && (
-        <EditEventModal
-          event={event}
-          onClose={() => setShowEditModal(false)}
-          onSuccess={() => {
-            setShowEditModal(false);
-            fetchEvent();
-          }}
-        />
-      )}
-
-      {/* Upload Modal */}
-      {showUploader && (
-        <BulkUploader
-          eventId={eventId}
-          onUploadComplete={handleUploadComplete}
-          onClose={() => setShowUploader(false)}
-        />
-      )}
-    </main>
+      {showEdit && <EditModal event={event} onClose={() => setShowEdit(false)} onSuccess={() => { setShowEdit(false); fetchEvent(); }} />}
+      {showUploader && <BulkUploader eventId={eventId} onUploadComplete={() => { fetchEvent(); fetchImages(); }} onClose={() => setShowUploader(false)} />}
+    </>
   );
 }
 
-function EditEventModal({
-  event,
-  onClose,
-  onSuccess,
-}: {
-  event: Event;
-  onClose: () => void;
-  onSuccess: () => void;
-}) {
-  const [name, setName] = useState(event.name);
-  const [description, setDescription] = useState(event.description || "");
-  const [location, setLocation] = useState(event.location || "");
-  const [eventDate, setEventDate] = useState(
-    event.eventDate ? new Date(event.eventDate).toISOString().slice(0, 16) : ""
-  );
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError("");
-
-    if (!name.trim()) {
-      setError("Event name is required");
-      return;
-    }
-
-    setLoading(true);
-
-    const { error: apiError } = await eventsApi.update(event.id, {
-      name: name.trim(),
-      description: description.trim() || undefined,
-      location: location.trim() || undefined,
-      eventDate: eventDate || undefined,
-    });
-
-    if (apiError) {
-      setError(apiError);
-      setLoading(false);
-      return;
-    }
-
-    onSuccess();
-  };
-
+function EditModal({ event, onClose, onSuccess }: { event: Event; onClose: () => void; onSuccess: () => void }) {
+  const [name, setName] = useState(event.name); const [description, setDescription] = useState(event.description || ""); const [location, setLocation] = useState(event.location || "");
+  const [eventDate, setEventDate] = useState(event.eventDate ? new Date(event.eventDate).toISOString().slice(0, 16) : ""); const [loading, setLoading] = useState(false); const [error, setError] = useState("");
+  const submit = async (e: React.FormEvent) => { e.preventDefault(); if (!name.trim()) { setError("Name required"); return; } setLoading(true); setError(""); const { error: err } = await eventsApi.update(event.id, { name: name.trim(), description: description.trim() || undefined, location: location.trim() || undefined, eventDate: eventDate || undefined }); if (err) { setError(err); setLoading(false); return; } onSuccess(); };
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-6 z-50">
-      <div className="card w-full max-w-lg animate-fade-in">
-        <div className="flex items-center justify-between mb-6">
-          <h3 className="text-xl font-semibold">Edit Event</h3>
-          <button
-            onClick={onClose}
-            className="text-muted hover:text-foreground transition-colors"
-          >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
+    <div className="overlay" onClick={onClose}>
+      <div className="modal" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-header"><h2 className="modal-title">Edit Event</h2><button className="modal-close" onClick={onClose}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg></button></div>
+        <div className="modal-body">
+          {error && <div className="modal-error">{error}</div>}
+          <form onSubmit={submit}>
+            <div className="field"><label className="field-label">Name</label><input type="text" value={name} onChange={(e) => setName(e.target.value)} autoFocus /></div>
+            <div className="field"><label className="field-label">Description</label><textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={2} /></div>
+            <div className="field"><label className="field-label">Location</label><input type="text" value={location} onChange={(e) => setLocation(e.target.value)} /></div>
+            <div className="field"><label className="field-label">Date</label><input type="datetime-local" value={eventDate} onChange={(e) => setEventDate(e.target.value)} /></div>
+            <div className="modal-footer"><button type="button" className="btn-cancel" onClick={onClose}>Cancel</button><button type="submit" className="btn-submit" disabled={loading || !name.trim()}>{loading ? <span className="spinner" style={{ borderTopColor: "#1a1508", borderColor: "rgba(26,21,8,0.2)" }} /> : "Save"}</button></div>
+          </form>
         </div>
-
-        {error && (
-          <div className="bg-error/10 border border-error/20 rounded-lg p-3 mb-6 text-error text-sm">
-            {error}
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} className="space-y-5">
-          <div>
-            <label className="block text-sm font-medium mb-2">Event Name *</label>
-            <input
-              type="text"
-              placeholder="e.g., Wedding Reception"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              autoFocus
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium mb-2">Description</label>
-            <textarea
-              placeholder="Brief description of the event"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              rows={3}
-              className="w-full bg-secondary border border-border rounded-xl p-4 text-foreground resize-none focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium mb-2">Location</label>
-            <input
-              type="text"
-              placeholder="e.g., Grand Ballroom, Hotel XYZ"
-              value={location}
-              onChange={(e) => setLocation(e.target.value)}
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium mb-2">Event Date</label>
-            <input
-              type="datetime-local"
-              value={eventDate}
-              onChange={(e) => setEventDate(e.target.value)}
-              className="w-full"
-            />
-          </div>
-
-          <div className="flex gap-3 pt-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="btn btn-secondary flex-1"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={loading || !name.trim()}
-              className="btn btn-primary flex-1"
-            >
-              {loading ? (
-                <span className="animate-pulse">Saving...</span>
-              ) : (
-                "Save Changes"
-              )}
-            </button>
-          </div>
-        </form>
       </div>
     </div>
   );

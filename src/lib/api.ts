@@ -1,4 +1,4 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
 
 interface ApiResponse<T = unknown> {
   data?: T;
@@ -180,6 +180,26 @@ export const eventsApi = {
     fetchApi<{ stats: { participantCount: number; imageCount: number; faceCount: number } }>(
       `/events/${id}/stats`
     ),
+
+  join: (code: string) =>
+    fetchApi<{ message: string; event: Event }>('/events/join', {
+      method: 'POST',
+      body: JSON.stringify({ code }),
+    }),
+
+  getMyJoinedEvents: () =>
+    fetchApi<{ events: Event[] }>('/events/my'),
+
+  getJoinedEventImages: (eventId: string, params?: { page?: number; limit?: number }) => {
+    const searchParams = new URLSearchParams();
+    if (params?.page) searchParams.set('page', params.page.toString());
+    if (params?.limit) searchParams.set('limit', params.limit.toString());
+    const query = searchParams.toString();
+    return fetchApi<{
+      images: Image[];
+      pagination: { page: number; limit: number; total: number; totalPages: number };
+    }>(`/events/${eventId}/images${query ? `?${query}` : ''}`);
+  },
 };
 
 // Image types
