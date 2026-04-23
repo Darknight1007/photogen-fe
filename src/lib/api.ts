@@ -1,4 +1,4 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
 interface ApiResponse<T = unknown> {
   data?: T;
@@ -161,6 +161,9 @@ export const eventsApi = {
 
   getById: (id: string) =>
     fetchApi<{ event: Event }>(`/events/${id}`),
+
+  getByCode: (code: string) =>
+  fetchApi<{ event: Event }>(`/events/code/${code}`),
 
   update: (id: string, data: UpdateEventData) =>
     fetchApi<{ message: string; event: Event }>(`/events/${id}`, {

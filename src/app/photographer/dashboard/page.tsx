@@ -56,6 +56,8 @@ export default function PhotographerDashboard() {
 
   const totalPhotos = events.reduce((sum, e) => sum + e.imageCount, 0);
   const totalParticipants = events.reduce((sum, e) => sum + e.participantCount, 0);
+  const activeEvents = events.filter((e) => e.isActive);
+  const archivedEvents = events.filter((e) => !e.isActive);
 
   if (!user) {
     return (
@@ -145,10 +147,33 @@ export default function PhotographerDashboard() {
         ) : (
           <div className="space-y-4">
             <h3 className="text-xl font-semibold">Your Events</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {events.map((event) => (
-                <EventCard key={event.id} event={event} onUpdate={fetchEvents} />
-              ))}
+            <div className="space-y-10">
+
+              <div>
+                <h3 className="text-xl font-semibold mb-4">Active Events</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {activeEvents.map((event) => (
+                    <EventCard key={event.id} event={event} onUpdate={fetchEvents} />
+                  ))}
+                </div>
+              </div>
+
+              <div className="pt-6 border-t border-border">
+                <h3 className="text-xl font-semibold mb-4">Archived Albums</h3>
+
+                {archivedEvents.length === 0 ? (
+                  <div className="card text-center py-8 text-muted">
+                    No archived albums yet
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {archivedEvents.map((event) => (
+                      <EventCard key={event.id} event={event} onUpdate={fetchEvents} />
+                    ))}
+                  </div>
+                )}
+              </div>
+
             </div>
           </div>
         )}
@@ -226,6 +251,12 @@ function EventCard({ event, onUpdate }: { event: Event; onUpdate: () => void }) 
                 >
                   View Details
                 </Link>
+                <button
+                  onClick={handleToggleActive}
+                  className="block w-full text-left px-4 py-2 text-sm hover:bg-border/50 transition-colors"
+                >
+                  {event.isActive ? "Archive Event" : "Restore Event"}
+                </button>
                 <button
                   onClick={handleToggleActive}
                   className="block w-full text-left px-4 py-2 text-sm hover:bg-border/50 transition-colors"
@@ -399,12 +430,30 @@ function CreateEventModal({
 
           <div>
             <label className="block text-sm font-medium mb-2">Event Date</label>
-            <input
-              type="datetime-local"
-              value={eventDate}
-              onChange={(e) => setEventDate(e.target.value)}
-              className="w-full"
-            />
+
+            <div className="grid grid-cols-2 gap-3">
+
+              {/* Date Picker */}
+              <input
+                type="date"
+                value={eventDate.split("T")[0] || ""}
+                onChange={(e) =>
+                  setEventDate(`${e.target.value}${eventDate.includes("T") ? eventDate.slice(10) : "T00:00"}`)
+                }
+                className="w-full bg-secondary border border-border rounded-xl p-4 text-foreground focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+              />
+
+              {/* Optional Time */}
+              <input
+                type="time"
+                value={eventDate.split("T")[1] || ""}
+                onChange={(e) =>
+                  setEventDate(`${eventDate.split("T")[0] || ""}T${e.target.value}`)
+                }
+                className="w-full bg-secondary border border-border rounded-xl p-4 text-foreground focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+              />
+
+            </div>
           </div>
 
           <div className="flex gap-3 pt-2">

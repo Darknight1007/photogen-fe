@@ -268,8 +268,8 @@ export default function EventDetailPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Event Code */}
             <div className="bg-secondary/50 rounded-xl p-6 text-center">
-              <div className="text-sm text-muted mb-2">Event Code</div>
-              <code className="text-3xl font-mono font-bold tracking-wider text-primary">
+              <div className="text-sm text-muted mb-6 mt-4">Event Code</div>
+              <code className="text-5xl font-mono font-bold tracking-wider text-primary">
                 {event.code}
               </code>
               <button
