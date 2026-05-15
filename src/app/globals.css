@@ -215,19 +215,23 @@ body::after {
 .ev-card {
   border: 1px solid var(--border);
   border-radius: 14px;
-  overflow: hidden;
   background: var(--bg2);
   display: flex; flex-direction: column;
   transition: border-color 0.25s, background 0.25s, transform 0.25s, box-shadow 0.25s;
   position: relative;
   text-decoration: none;
   cursor: pointer;
+  z-index: 1;
+}
+.ev-card.has-menu {
+  z-index: 10;
 }
 .ev-card:hover {
   border-color: var(--border2);
   background: var(--bg3);
   transform: translateY(-3px);
   box-shadow: 0 16px 40px rgba(0,0,0,0.45), 0 4px 12px rgba(0,0,0,0.3);
+  z-index: 5;
 }
 .ev-card.archived {
   opacity: 0.55;
@@ -256,6 +260,7 @@ body::after {
   aspect-ratio: 16/7; overflow: hidden; position: relative;
   background: linear-gradient(135deg, #1a1610, #0f0e0c);
   flex-shrink: 0;
+  border-radius: 13px 13px 0 0;
 }
 .ev-thumb img {
   width: 100%; height: 100%; object-fit: cover; opacity: 0.7;
@@ -404,7 +409,7 @@ body::after {
   position: relative; overflow: hidden;
 }
 .empty-grid {
-  position: absolute; inset: 0; opacity: 0.03;
+  position: absolute; inset: 0; opacity: 0.03; pointer-events: none;
   background-image:
     repeating-linear-gradient(90deg, var(--cream) 0, var(--cream) 0.5px, transparent 0.5px, transparent 48px),
     repeating-linear-gradient(0deg,  var(--cream) 0, var(--cream) 0.5px, transparent 0.5px, transparent 48px);
@@ -412,6 +417,23 @@ body::after {
 .empty-icon { font-size: 44px; margin-bottom: 20px; opacity: 0.5; }
 .empty-title { font-family: var(--font-display); font-size: 28px; font-weight: 400; font-style: italic; color: var(--cream); margin-bottom: 10px; }
 .empty-sub { font-size: 13px; color: var(--muted); font-weight: 300; max-width: 340px; margin: 0 auto 28px; line-height: 1.75; }
+.empty-inline {
+  display: flex; align-items: center; gap: 12px;
+  padding: 16px 20px;
+  background: rgba(245,240,232,0.02);
+  border: 1px dashed var(--border2);
+  border-radius: 12px;
+  color: var(--dim);
+  font-family: var(--font-mono); font-size: 11px;
+  text-transform: uppercase; letter-spacing: 0.08em;
+}
+.empty-inline svg { color: var(--gold) !important; opacity: 0.8; }
+.link-btn {
+  background: none; border: none; padding: 0;
+  color: var(--gold); font: inherit; cursor: pointer;
+  text-decoration: underline; text-underline-offset: 4px;
+}
+.link-btn:hover { color: var(--gold2); }
 
 /* ── OVERLAY / MODAL ── */
 .overlay {

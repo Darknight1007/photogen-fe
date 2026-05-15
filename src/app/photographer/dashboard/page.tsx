@@ -5,9 +5,90 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { eventsApi, Event } from "@/lib/api";
 
+import CustomCursor from "@/components/CustomCursor";
+
 /* ─── Global Styles ──────────────────────────────────────────────────────── */
 const Styles = () => (
   <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,300;1,400&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400&display=swap');
+
+        :root {
+          --gold:  #D4AF37;
+          --gold2: #f5e070;
+          --gold3: #8B6914;
+          --bg:    #050400;
+          --bg2:   #0a0800;
+          --border: rgba(212,175,55,0.18);
+          --muted: rgba(212,175,55,0.5);
+          --dim:   rgba(212,175,55,0.3);
+          --cream: #f0e8cc;
+          --font-display: 'Playfair Display', Georgia, serif;
+          --font-body:    'DM Sans', system-ui, sans-serif;
+          --font-mono:    'DM Mono', 'Courier New', monospace;
+        }
+
+        body { 
+          background-color: var(--bg); 
+          background-image: 
+            radial-gradient(circle at top left, rgba(212,175,55,0.15) 0%, transparent 40%),
+            radial-gradient(circle at bottom right, rgba(139,105,20,0.15) 0%, transparent 40%),
+            radial-gradient(circle at 50% 50%, rgba(245,224,112,0.03) 0%, transparent 70%);
+          background-attachment: fixed;
+          color: var(--cream); font-family: var(--font-body); margin: 0; padding: 0; 
+        }
+        
+        body::before {
+          content: ''; position: fixed; inset: 0; pointer-events: none; z-index: -1;
+          background: radial-gradient(circle at 30% 40%, rgba(212,175,55,0.12) 0%, transparent 50%);
+          animation: pulseGlow 10s ease-in-out infinite alternate;
+        }
+        @keyframes pulseGlow {
+          0% { transform: scale(1) translate(0, 0); opacity: 0.6; }
+          100% { transform: scale(1.4) translate(5%, 5%); opacity: 1; }
+        }
+        
+        .phl-nav {
+          position: fixed; top: 0; left: 0; right: 0; z-index: 500;
+          display: flex; align-items: center; justify-content: space-between;
+          padding: 0 52px; height: 68px;
+          border-bottom: 1px solid var(--border);
+          background: rgba(5,4,0,0.75);
+          backdrop-filter: blur(22px) saturate(1.4);
+        }
+        .nav-logo { display:flex; align-items:center; gap:11px; text-decoration: none; }
+        .nav-mark {
+          width:34px; height:34px; border-radius:9px;
+          border:1px solid rgba(212,175,55,0.3);
+          display:flex; align-items:center; justify-content:center;
+          background:rgba(212,175,55,0.07);
+          box-shadow:0 0 20px rgba(212,175,55,0.1);
+        }
+        .nav-logo-text { font-family:var(--font-display); font-size:18px; font-weight:600; color:var(--cream); letter-spacing:0.03em; }
+
+        .btn-gold {
+          display:inline-flex; align-items:center; justify-content: center; gap:8px;
+          background:linear-gradient(135deg,#8B6914,#D4AF37,#f5e070,#D4AF37,#8B6914);
+          background-size:300%;
+          color:#0d0b04; font-weight:500; font-size:13px;
+          padding:12px 24px; border-radius:8px; border:none;
+          letter-spacing:0.04em; transition:background-position 0.4s, transform 0.2s;
+          background-position:100% center; cursor: pointer;
+        }
+        .btn-gold:hover { background-position:0% center; }
+        .btn-gold:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        body::after {
+          content:'';
+          position:fixed; inset:-50%; width:200%; height:200%;
+          background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+          pointer-events:none; opacity:0.6; z-index:9990;
+          animation:grain 1s steps(1) infinite;
+        }
+        @keyframes grain {
+          0%,100%{transform:translate(0,0)} 20%{transform:translate(-1%,1%)}
+          40%{transform:translate(1%,-1%)} 60%{transform:translate(-1%,-1%)}
+          80%{transform:translate(1%,1%)}
+        }
   `}</style>
 );
 
@@ -50,8 +131,8 @@ export default function PhotographerDashboard() {
   if (!user) return (
     <>
       <Styles />
-      <div style={{ minHeight: "100vh", background: "#080807", display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <div className="spinner" style={{ width: 32, height: 32, borderWidth: 3 }} />
+      <div style={{ minHeight: "100vh", background: "#050400", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <div className="spinner" style={{ borderTopColor: "#D4AF37", width: 32, height: 32, borderWidth: 3 }} />
       </div>
     </>
   );
@@ -61,27 +142,27 @@ export default function PhotographerDashboard() {
       <Styles />
 
       {/* NAV */}
-      <nav className="nav">
-        <div className="nav-inner">
-          <div className="logo">
-            <div className="logo-mark">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ color: "var(--gold)" }}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-                <circle cx="12" cy="13" r="3" />
-              </svg>
-            </div>
-            <span className="logo-text">PhotoGen</span>
-            <span className="logo-badge">Studio</span>
+      <nav className="phl-nav">
+        <Link href="/" className="nav-logo">
+          <div className="nav-mark">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ color: "var(--gold)" }}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+              <circle cx="12" cy="13" r="3" />
+            </svg>
           </div>
-          <div className="nav-right">
-            <div className="avatar">{user.name?.charAt(0)?.toUpperCase()}</div>
-            <button className="btn-pill" onClick={handleLogout}>Sign out</button>
+          <span className="nav-logo-text">PhotoGen</span>
+          <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: "0.15em", textTransform: "uppercase", color: "var(--gold3)", background: "rgba(212,175,55,0.06)", border: "1px solid rgba(212,175,55,0.15)", borderRadius: 20, padding: "2px 8px", marginLeft: 8 }}>Studio</span>
+        </Link>
+        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+          <div style={{ width: 34, height: 34, borderRadius: 9, background: "rgba(212,175,55,0.07)", border: "1px solid rgba(212,175,55,0.3)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: 500, color: "var(--gold)" }}>
+            {user.name?.charAt(0)?.toUpperCase()}
           </div>
+          <button className="btn-gold" style={{ padding: "10px 20px", fontSize: 12 }} onClick={handleLogout}>Sign out</button>
         </div>
       </nav>
 
       {/* MAIN — full bleed, generous side padding */}
-      <main style={{ padding: "56px 48px 80px" }}>
+      <main style={{ padding: "56px 48px 80px", marginTop: 68 }}>
 
         {/* HERO */}
         <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", marginBottom: 52, flexWrap: "wrap", gap: 20 }} className="fade-up d1">
@@ -153,11 +234,11 @@ export default function PhotographerDashboard() {
               </div>
 
               {activeEvents.length === 0 ? (
-                <div className="empty-inline">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ color: "var(--dim)" }}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                <div className="empty-inline" style={{ display: "flex", alignItems: "center", gap: "12px", padding: "18px 24px", background: "var(--bg2)", border: "1px dashed var(--border2)", borderRadius: "12px", color: "var(--dim)", fontFamily: "var(--font-mono)", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" strokeWidth="1.5">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                   </svg>
-                  <span>No active events — <button className="link-btn" onClick={() => setShowCreate(true)}>create one</button></span>
+                  <span>No active events — <button className="link-btn" onClick={() => setShowCreate(true)} style={{ background: "none", border: "none", padding: 0, color: "var(--gold)", font: "inherit", cursor: "pointer", textDecoration: "underline", textUnderlineOffset: "4px" }}>create one</button></span>
                 </div>
               ) : (
                 <div className="events-grid">
@@ -176,8 +257,8 @@ export default function PhotographerDashboard() {
                 </div>
 
                 {archivedEvents.length === 0 ? (
-                  <div className="empty-inline">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ color: "var(--dim)" }}>
+                  <div className="empty-inline" style={{ display: "flex", alignItems: "center", gap: "12px", padding: "18px 24px", background: "var(--bg2)", border: "1px dashed var(--border2)", borderRadius: "12px", color: "var(--dim)", fontFamily: "var(--font-mono)", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" strokeWidth="1.5">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
                     </svg>
                     <span>No archived albums yet — archive an event from its menu to store it here</span>
@@ -214,7 +295,7 @@ function EventCard({ event, onUpdate, index }: { event: Event; onUpdate: () => v
 
   // Classify state
   const isArchived = !event.isActive;
-  const cardClass = `ev-card fade-up${isArchived ? " archived" : ""}`;
+  const cardClass = `ev-card fade-up${isArchived ? " archived" : ""}${menu ? " has-menu" : ""}`;
 
   const dateStr = new Date(event.eventDate || event.createdAt).toLocaleDateString("en-US", {
     month: "short", day: "numeric", year: "numeric",
@@ -233,9 +314,10 @@ function EventCard({ event, onUpdate, index }: { event: Event; onUpdate: () => v
         )}
         <div className="ev-thumb-grid" />
         <div className="ev-thumb-fade" />
+      </div>
 
-        {/* Top bar: status + menu */}
-        <div className="ev-thumb-top">
+      {/* Top bar: status + menu */}
+      <div className="ev-thumb-top">
           {/* Status badge */}
           {event.isActive ? (
             <span className="badge badge-live">Live</span>
@@ -298,7 +380,6 @@ function EventCard({ event, onUpdate, index }: { event: Event; onUpdate: () => v
             )}
           </div>
         </div>
-      </div>
 
       {/* BODY */}
       <div className="ev-body">

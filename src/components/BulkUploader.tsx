@@ -21,25 +21,82 @@ export default function BulkUploader({ eventId, onUploadComplete, onClose }: Bul
   const clearAll = () => { files.forEach((f) => URL.revokeObjectURL(f.preview)); setFiles([]); };
   const fileToBase64 = (file: File): Promise<string> => new Promise((resolve, reject) => { const r = new FileReader(); r.readAsDataURL(file); r.onload = () => resolve(r.result as string); r.onerror = reject; });
 
+  const uploadBase64WithProgress = (
+    eventId: string,
+    imgData: { url: string; key: string; width: number; height: number; size: number },
+    onProgress: (prog: number) => void
+  ): Promise<any> => {
+    return new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.upload.addEventListener('progress', (e) => {
+        if (e.lengthComputable) onProgress(Math.round((e.loaded / e.total) * 100));
+      });
+      xhr.addEventListener('load', () => {
+        if (xhr.status >= 200 && xhr.status < 300) resolve(JSON.parse(xhr.responseText));
+        else reject(new Error('Upload failed'));
+      });
+      xhr.addEventListener('error', () => reject(new Error('Network error')));
+      
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
+      xhr.open('POST', `${API_URL}/images/confirm`, true);
+      xhr.setRequestHeader('Content-Type', 'application/json');
+      const token = localStorage.getItem('token');
+      if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+      
+      xhr.send(JSON.stringify({ eventId, images: [imgData] }));
+    });
+  };
+
   const startUpload = async () => {
     if (!files.length || uploading) return;
     setUploading(true); setOverallProgress(0);
     const pending = files.filter((f) => f.status === "pending");
-    for (let i = 0; i < pending.length; i += 10) {
-      const batch = pending.slice(i, i + 10);
-      const results = await Promise.all(batch.map(async (uf) => {
-        setFiles((p) => p.map((f) => f.id === uf.id ? { ...f, status: "uploading", progress: 50 } : f));
-        try {
-          const base64Url = await fileToBase64(uf.file); let dimensions = { width: 0, height: 0 }; try { dimensions = await getImageDimensions(uf.file); } catch {}
-          setFiles((p) => p.map((f) => f.id === uf.id ? { ...f, status: "success", progress: 100 } : f));
-          return { url: base64Url, key: uf.id, width: dimensions.width, height: dimensions.height, size: uf.file.size };
-        } catch { setFiles((p) => p.map((f) => f.id === uf.id ? { ...f, status: "error" } : f)); return null; }
-      }));
-      const ok = results.filter(Boolean) as any[];
-      if (ok.length) await imagesApi.confirmUploads(eventId, ok);
-      setOverallProgress(Math.round((Math.min(i + 10, pending.length) / pending.length) * 100));
+    if (!pending.length) { setUploading(false); return; }
+
+    try {
+      const progressMap = new Map<string, number>();
+      const updateOverallProgress = () => {
+         let totalProgress = 0;
+         pending.forEach(uf => { totalProgress += progressMap.get(uf.id) || 0; });
+         setOverallProgress(Math.round(totalProgress / pending.length));
+      };
+
+      for (let i = 0; i < pending.length; i += 2) {
+        const batch = pending.slice(i, i + 2);
+        
+        await Promise.all(batch.map(async (uf) => {
+          setFiles(p => p.map(f => f.id === uf.id ? { ...f, status: "uploading", progress: 0 } : f));
+          progressMap.set(uf.id, 0);
+          
+          try {
+            const base64Url = await fileToBase64(uf.file); 
+            let dimensions = { width: 0, height: 0 }; 
+            try { dimensions = await getImageDimensions(uf.file); } catch {}
+            
+            await uploadBase64WithProgress(eventId, {
+              url: base64Url,
+              key: uf.id,
+              width: dimensions.width,
+              height: dimensions.height,
+              size: uf.file.size
+            }, (prog) => {
+              progressMap.set(uf.id, prog);
+              updateOverallProgress();
+              setFiles(p => p.map(f => f.id === uf.id ? { ...f, progress: prog } : f));
+            });
+            
+            setFiles(p => p.map(f => f.id === uf.id ? { ...f, status: "success", progress: 100 } : f));
+          } catch (err) {
+            setFiles(p => p.map(f => f.id === uf.id ? { ...f, status: "error" } : f));
+          }
+        }));
+      }
+    } catch (err) {
+      alert("Upload error: " + (err instanceof Error ? err.message : "Unknown error"));
     }
-    setUploading(false); onUploadComplete();
+    
+    setUploading(false);
+    onUploadComplete();
   };
 
   const pendingCount = files.filter((f) => f.status === "pending").length;
@@ -101,7 +158,12 @@ export default function BulkUploader({ eventId, onUploadComplete, onClose }: Bul
                   <div key={uf.id} style={{ aspectRatio: "1", overflow: "hidden", position: "relative", background: "var(--bg3)" }}>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={uf.preview} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                    {uf.status === "uploading" && <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center" }}><div className="spinner" style={{ width: 16, height: 16 }} /></div>}
+                    {uf.status === "uploading" && (
+                      <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.6)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
+                        <div className="spinner" style={{ width: 14, height: 14, marginBottom: 6 }} />
+                        <span style={{ fontFamily: "var(--font-mono)", fontSize: 9, color: "var(--gold)" }}>{uf.progress}%</span>
+                      </div>
+                    )}
                     {uf.status === "success" && <div style={{ position: "absolute", inset: 0, background: "rgba(122,171,126,0.2)", display: "flex", alignItems: "center", justifyContent: "center" }}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--green)" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg></div>}
                     {uf.status === "error" && <div style={{ position: "absolute", inset: 0, background: "rgba(212,102,74,0.2)", display: "flex", alignItems: "center", justifyContent: "center" }}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--red)" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg></div>}
                     {uf.status === "pending" && !uploading && (
