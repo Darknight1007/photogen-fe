@@ -102,6 +102,34 @@ export default function PublicEventPage() {
 
       if (!response.ok) throw new Error("Node Backend error");
       const searchData = await response.json();
+      
+      /* =======================================================================
+         🔍 FACE MATCHING DEBUG LOGGER (To turn OFF: change '// /*' below to '/*')
+         ======================================================================= */
+      // /*
+      if (searchData.results) {
+        console.clear();
+        console.group("%c🎯 FACE MATCHING SUMMARY", "color: #D4AF37; font-weight: bold; font-size: 14px;");
+        console.log(`Threshold Used       : ${searchData.thresholdUsed ?? 0.30}`);
+        console.log(`Total Images Scanned : ${searchData.totalImagesSearched ?? 0}`);
+        console.log(`Matches Found (PASS) : ${searchData.matchCount ?? 0}`);
+        
+        console.group("%cPASSING IMAGES (>= 30% Match)", "color: #4ade80; font-weight: bold;");
+        searchData.results.filter((img: any) => img.isMatch).forEach((img: any) => {
+          console.log(`%c[PASS] %c${img.matchLabel} %c- ${img.url}`, "color: #4ade80; font-weight: bold;", "color: #fff;", "color: #8b6914;");
+        });
+        console.groupEnd();
+
+        console.group("%cFAILING IMAGES (< 30% Match)", "color: #f87171; font-weight: bold;");
+        searchData.results.filter((img: any) => !img.isMatch).forEach((img: any) => {
+          console.log(`%c[FAIL] %c${img.matchLabel} %c- ${img.url}`, "color: #f87171; font-weight: bold;", "color: #fff;", "color: #8b6914;");
+        });
+        console.groupEnd();
+        console.groupEnd();
+      }
+      // */
+      /* ======================================================================= */
+
       setFoundImages(searchData.results || []);
     } catch (err) {
       console.error(err);
@@ -120,8 +148,11 @@ export default function PublicEventPage() {
   const openLightbox = useCallback((img: any) => setLightbox(img), []);
 
   /* ── Derived ── */
-  const displayImages = activeTab === "matches" && hasSearched ? foundImages : images;
-  const matchSet = new Set(foundImages.map((f: any) => f.id));
+  const displayImages =
+    activeTab === "matches"
+      ? foundImages.filter((img: any) => img.isMatch)
+      : images;
+  const matchSet = new Set(foundImages.filter((f: any) => f.isMatch).map((f: any) => f.id));
   const shareUrl = typeof window !== "undefined" ? `${window.location.origin}/join/${event?.code}` : `/join/${event?.code ?? ""}`;
 
   if (loading) return (
@@ -471,7 +502,7 @@ export default function PublicEventPage() {
                   <button className="icon-btn" onClick={() => copy(event.code, "code")}>
                     {copied === "code"
                       ? <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
-                      : <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+                      : <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 di2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
                     }
                   </button>
                 </div>
@@ -544,7 +575,7 @@ export default function PublicEventPage() {
           <div style={{ paddingBottom: 28, borderBottom: "1px solid var(--border)" }}>
             <div className="stat-row"><span className="stat-row-label">Photos</span><span className="stat-row-val">{images.length}</span></div>
             <div className="stat-row"><span className="stat-row-label">Scanned</span><span className="stat-row-val">{searching ? "..." : (hasSearched ? images.length : 0)}</span></div>
-            <div className="stat-row" style={{ marginBottom: 0 }}><span className="stat-row-label">Matched</span><span className="stat-row-val">{hasSearched ? foundImages.length : "—"}</span></div>
+            <div className="stat-row" style={{ marginBottom: 0 }}><span className="stat-row-label">Matched</span><span className="stat-row-val">{hasSearched ? foundImages.filter((img: any) => img.isMatch).length : "—"}</span></div>
           </div>
 
           {hasSearched && !searching && (
@@ -569,7 +600,7 @@ export default function PublicEventPage() {
             </button>
             {hasSearched && (
               <button className={`tab-btn ${activeTab === "matches" ? "active" : ""}`} onClick={() => setActiveTab("matches")}>
-                Matched ({foundImages.length})
+                Matched ({foundImages.filter((img: any) => img.isMatch).length})
               </button>
             )}
           </div>

@@ -5,6 +5,7 @@ import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
 import { eventsApi, imagesApi, Event, Image } from "@/lib/api";
 import BulkUploader from "@/components/BulkUploader";
+import { Toast, useToast } from "@/components/Toast";
 import { QRCodeSVG } from "qrcode.react";
 
 /* ─── Shared luxury CSS (mirrors user page) ─── */
@@ -430,6 +431,8 @@ export default function EventDetailPage() {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [deleting, setDeleting] = useState(false);
   const [expandedImage, setExpandedImage] = useState<Image | null>(null);
+  const [settingCover, setSettingCover] = useState(false);
+  const { toast, show: showToast, dismiss: dismissToast } = useToast();
 
   const fetchEvent = useCallback(async () => {
     const { data } = await eventsApi.getById(eventId);
@@ -473,6 +476,32 @@ export default function EventDetailPage() {
     setDeleting(false);
   }, [selected, fetchEvent, fetchImages]);
 
+  const handleSetAlbumCover = useCallback(async () => {
+    if (!event || !expandedImage || settingCover) return;
+
+    const previousCover = event.coverImage;
+    const isSameImage = previousCover === expandedImage.url;
+
+    setSettingCover(true);
+    const { error } = await eventsApi.update(event.id, { coverImage: expandedImage.url });
+    setSettingCover(false);
+
+    if (error) {
+      showToast(error || "Failed to set album cover", "error");
+      return;
+    }
+
+    await fetchEvent();
+
+    if (isSameImage) {
+      showToast("Already album cover", "success");
+    } else if (previousCover) {
+      showToast("Album cover updated", "success");
+    } else {
+      showToast("Set as album cover", "success");
+    }
+  }, [event, expandedImage, settingCover, fetchEvent, showToast]);
+
   if (loading) return (
     <div style={{ minHeight: "100vh", background: "#050400", display: "flex", alignItems: "center", justifyContent: "center" }}>
       <div className="spinner" style={{ width: 32, height: 32 }} />
@@ -485,6 +514,7 @@ export default function EventDetailPage() {
   return (
     <>
       <GlobalStyles />
+      <Toast toast={toast} onDismiss={dismissToast} />
 
       {/* ── Nav ── */}
       <nav className="phl-nav">
@@ -778,18 +808,16 @@ export default function EventDetailPage() {
           </button>
 
           <button
-            onClick={async (e) => {
-              e.stopPropagation();
-              const { error } = await eventsApi.update(event.id, { coverImage: expandedImage.url });
-              if (error) alert(error);
-              else { fetchEvent(); }
-            }}
+            onClick={(e) => { e.stopPropagation(); handleSetAlbumCover(); }}
+            disabled={settingCover}
             style={{
               position: "absolute", bottom: 36, left: "50%", transform: "translateX(-50%)",
               background: "var(--gold)", color: "#1a1508",
               border: "none", padding: "10px 22px", borderRadius: 22,
               fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: "0.12em",
-              textTransform: "uppercase", fontWeight: 600, cursor: "pointer",
+              textTransform: "uppercase", fontWeight: 600,
+              cursor: settingCover ? "wait" : "pointer",
+              opacity: settingCover ? 0.75 : 1,
               zIndex: 10, display: "flex", alignItems: "center", gap: 8,
               boxShadow: "0 4px 20px rgba(212,175,55,0.4)"
             }}
@@ -797,7 +825,7 @@ export default function EventDetailPage() {
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
             </svg>
-            Set as Album Cover
+            {settingCover ? "Setting…" : "Set as Album Cover"}
           </button>
 
           {/* eslint-disable-next-line @next/next/no-img-element */}
