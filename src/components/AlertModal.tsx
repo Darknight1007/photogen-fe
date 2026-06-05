@@ -43,7 +43,7 @@ export default function AlertContainer() {
             100% { opacity: 1; transform: scale(1) translateY(0); }
           }
         `}</style>
-        
+
         <div style={{ position: "relative", zIndex: 1 }}>
           <div style={{ width: 56, height: 56, borderRadius: 28, background: "rgba(212,175,55,0.08)", border: "1px solid rgba(212,175,55,0.25)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 24px", color: "var(--gold)", boxShadow: "0 0 20px rgba(212,175,55,0.15)" }}>
             <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
