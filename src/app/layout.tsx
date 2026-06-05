@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import AlertContainer from "@/components/AlertModal";
+import IdleTimeout from "@/components/IdleTimeout";
 
 export const metadata: Metadata = {
   title: "PhotoGen — AI Event Photography",
@@ -22,6 +23,7 @@ export default function RootLayout({
       <body>
         {children}
         <AlertContainer />
+        <IdleTimeout />
       </body>
     </html>
   );
