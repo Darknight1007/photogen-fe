@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import OtpInput from "@/components/OtpInput";
+import DemoOtpBanner from "@/components/DemoOtpBanner";
 import { authApi } from "@/lib/api";
 import CustomCursor from "@/components/CustomCursor";
 
@@ -19,12 +20,16 @@ export default function PhotographerLogin() {
   const [isNewUser, setIsNewUser] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [demoOtp, setDemoOtp] = useState<string | null>(null);
 
   const handleSendOtp = async (e: React.FormEvent) => {
     e.preventDefault(); setError(""); setLoading(true);
     const { data, error: err } = await authApi.sendOtp(phone);
     if (err) { setError(err); setLoading(false); return; }
-    setIsNewUser(data?.isNewUser ?? false); setStep("otp"); setLoading(false);
+    setIsNewUser(data?.isNewUser ?? false);
+    setDemoOtp(data?.otp ?? null);
+    setStep("otp");
+    setLoading(false);
   };
 
   const handleVerifyOtp = async (e: React.FormEvent) => {
@@ -224,13 +229,14 @@ export default function PhotographerLogin() {
 
             {step === "otp" && (
               <form onSubmit={handleVerifyOtp}>
+                {demoOtp && <DemoOtpBanner code={demoOtp} />}
                 <div style={{ marginBottom: 32 }}>
                   <OtpInput value={otp} onChange={setOtp} disabled={loading} />
                 </div>
                 <button type="submit" className="btn-gold" style={{ width: "100%" }} disabled={loading || otp.length !== 6}>
                   {loading ? "Verifying..." : "Verify"}
                 </button>
-                <button type="button" onClick={() => { setOtp(""); setStep("phone"); }} style={{ width: "100%", textAlign: "center", marginTop: 20, fontFamily: "var(--font-mono)", fontSize: 11, letterSpacing: "0.06em", color: "var(--dim)", background: "none", border: "none", cursor: "pointer" }}>
+                <button type="button" onClick={() => { setOtp(""); setDemoOtp(null); setStep("phone"); }} style={{ width: "100%", textAlign: "center", marginTop: 20, fontFamily: "var(--font-mono)", fontSize: 11, letterSpacing: "0.06em", color: "var(--dim)", background: "none", border: "none", cursor: "pointer" }}>
                   Use different number
                 </button>
               </form>

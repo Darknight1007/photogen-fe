@@ -6,6 +6,8 @@ import Link from "next/link";
 import { eventsApi, Event } from "@/lib/api";
 
 import CustomCursor from "@/components/CustomCursor";
+import EventDateTimePicker from "@/components/EventDateTimePicker";
+import { showAlert } from "@/components/AlertModal";
 
 /* ─── Global Styles ──────────────────────────────────────────────────────── */
 const Styles = () => (
@@ -107,6 +109,18 @@ export default function PhotographerDashboard() {
     setLoading(false);
   }, []);
 
+  const [eventCode, setEventCode] = useState("");
+  const [joining, setJoining] = useState(false);
+
+  const handleJoin = async () => {
+    if (!eventCode.trim() || joining) return;
+    setJoining(true);
+    const { error } = await eventsApi.join(eventCode.trim());
+    if (error) { showAlert(error); setJoining(false); return; }
+    router.push(`/event/${eventCode.trim().toUpperCase()}`);
+    setJoining(false);
+  };
+
   useEffect(() => {
     const s = localStorage.getItem("user");
     const t = localStorage.getItem("token");
@@ -187,7 +201,7 @@ export default function PhotographerDashboard() {
         </div>
 
         {/* STATS */}
-        <div className="stats-grid fade-up d2">
+        <div className="stats-grid fade-up d2" style={{ marginBottom: 64 }}>
           <div className="stat">
             <div className="stat-label">Total Events</div>
             <div className="stat-value">{events.length}</div>
@@ -199,6 +213,36 @@ export default function PhotographerDashboard() {
           <div className="stat">
             <div className="stat-label">Guests Served</div>
             <div className="stat-value">{totalGuests.toLocaleString()}</div>
+          </div>
+        </div>
+
+        {/* JOIN EVENT */}
+        <div style={{ position: "relative", border: "1px solid var(--border)", background: "var(--bg2)", padding: "40px", borderRadius: "16px", marginBottom: 64, overflow: "hidden" }} className="fade-up d3">
+          <div style={{ position: "absolute", inset: 0, opacity: 0.03, backgroundImage: `repeating-linear-gradient(45deg, var(--gold) 0px, var(--gold) 1px, transparent 1px, transparent 20px)` }} />
+          <div style={{ position: "relative", zIndex: 1 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" /></svg>
+              <div style={{ fontFamily: "var(--font-mono)", fontSize: 11, letterSpacing: "0.15em", textTransform: "uppercase", color: "var(--gold)" }}>
+                Have an access code?
+              </div>
+            </div>
+            <p style={{ fontSize: 14, fontWeight: 300, color: "var(--muted)", maxWidth: 500, marginBottom: 24, lineHeight: 1.6 }}>
+              Enter a secret code to instantly unlock and view an event gallery.
+            </p>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 12 }}>
+              <input
+                className="pg-input"
+                type="text"
+                placeholder="e.g. WEDDING2026"
+                value={eventCode}
+                onChange={(e) => setEventCode(e.target.value.toUpperCase())}
+                onKeyDown={(e) => e.key === "Enter" && handleJoin()}
+                style={{ fontFamily: "var(--font-mono)", letterSpacing: "0.15em", textTransform: "uppercase", width: "100%", maxWidth: 320, padding: "14px 18px", borderRadius: "8px" }}
+              />
+              <button className="btn-gold" onClick={handleJoin} disabled={joining || !eventCode.trim()} style={{ flexShrink: 0, padding: "14px 28px", borderRadius: "8px" }}>
+                {joining ? <span className="spinner" style={{ borderTopColor: "#1a1508", borderColor: "rgba(26,21,8,0.2)", width: 14, height: 14 }} /> : "Unlock Gallery"}
+              </button>
+            </div>
           </div>
         </div>
 
@@ -366,7 +410,7 @@ function EventCard({ event, onUpdate, index }: { event: Event; onUpdate: () => v
                       setDeleting(true);
                       const res = await eventsApi.delete(event.id);
                       if (res.error) {
-                        alert(res.error);
+                        showAlert(res.error);
                         setDeleting(false);
                       } else {
                         onUpdate();
@@ -502,18 +546,7 @@ function CreateModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: (
             </div>
             <div className="field">
               <label className="field-label">Date &amp; time <em>(optional)</em></label>
-              <div className="field-row">
-                <input
-                  type="date"
-                  value={eventDate.split("T")[0] || ""}
-                  onChange={(e) => setEventDate(`${e.target.value}${eventDate.includes("T") ? eventDate.slice(10) : "T00:00"}`)}
-                />
-                <input
-                  type="time"
-                  value={eventDate.split("T")[1] || ""}
-                  onChange={(e) => setEventDate(`${eventDate.split("T")[0] || ""}T${e.target.value}`)}
-                />
-              </div>
+              <EventDateTimePicker value={eventDate} onChange={setEventDate} />
             </div>
             <div className="modal-footer">
               <button type="button" className="btn-cancel" onClick={onClose}>Cancel</button>

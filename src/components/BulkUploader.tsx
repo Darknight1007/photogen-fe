@@ -2,6 +2,7 @@
 
 import { useState, useRef, useCallback } from "react";
 import { imagesApi, getImageDimensions } from "@/lib/api";
+import { showAlert } from "@/components/AlertModal";
 
 interface UploadFile { id: string; file: File; preview: string; status: "pending" | "uploading" | "success" | "error"; progress: number; }
 interface BulkUploaderProps { eventId: string; onUploadComplete: () => void; onClose: () => void; }
@@ -92,7 +93,7 @@ export default function BulkUploader({ eventId, onUploadComplete, onClose }: Bul
         }));
       }
     } catch (err) {
-      alert("Upload error: " + (err instanceof Error ? err.message : "Unknown error"));
+      showAlert("Upload error: " + (err instanceof Error ? err.message : "Unknown error"));
     }
     
     setUploading(false);

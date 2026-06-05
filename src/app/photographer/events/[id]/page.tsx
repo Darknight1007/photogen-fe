@@ -5,8 +5,10 @@ import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
 import { eventsApi, imagesApi, Event, Image } from "@/lib/api";
 import BulkUploader from "@/components/BulkUploader";
+import EventDateTimePicker, { toDatetimeLocalValue } from "@/components/EventDateTimePicker";
 import { Toast, useToast } from "@/components/Toast";
 import { QRCodeSVG } from "qrcode.react";
+import { showAlert } from "@/components/AlertModal";
 
 /* ─── Shared luxury CSS (mirrors user page) ─── */
 const GlobalStyles = () => (
@@ -578,6 +580,14 @@ export default function EventDetailPage() {
               <span>✦ {new Date(event.eventDate).toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}</span>
             )}
           </div>
+          {event.description && (
+            <p style={{
+              fontFamily: "var(--font-body)", fontSize: 15, fontWeight: 300,
+              color: "var(--dim)", marginTop: 24, marginBottom: 0, maxWidth: 600, lineHeight: 1.6
+            }}>
+              {event.description}
+            </p>
+          )}
         </div>
 
         {/* Stats */}
@@ -762,7 +772,7 @@ export default function EventDetailPage() {
               onClick={async () => {
                 if (window.confirm("Delete this event permanently?")) {
                   const res = await eventsApi.delete(event.id);
-                  if (res.error) alert(res.error);
+                  if (res.error) showAlert(res.error);
                   else router.push("/photographer/dashboard");
                 }
               }}
@@ -851,7 +861,9 @@ function EditModal({
   const [name, setName] = useState(event.name);
   const [description, setDescription] = useState(event.description || "");
   const [location, setLocation] = useState(event.location || "");
-  const [eventDate, setEventDate] = useState(event.eventDate ? new Date(event.eventDate).toISOString().slice(0, 16) : "");
+  const [eventDate, setEventDate] = useState(
+    event.eventDate ? toDatetimeLocalValue(event.eventDate) : ""
+  );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -897,7 +909,7 @@ function EditModal({
             </div>
             <div className="field">
               <label className="field-label">Date & Time</label>
-              <input type="datetime-local" value={eventDate} onChange={e => setEventDate(e.target.value)} />
+              <EventDateTimePicker value={eventDate} onChange={setEventDate} />
             </div>
             <div className="modal-footer">
               <button type="button" className="btn-cancel" onClick={onClose}>Cancel</button>

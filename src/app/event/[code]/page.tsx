@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { eventsApi } from "@/lib/api";
 import { QRCodeSVG } from "qrcode.react";
+import { showAlert } from "@/components/AlertModal";
 
 /* ─── Memoized photo card – prevents grid re-renders on tab/search state ─── */
 const PhotoCard = memo(function PhotoCard({
@@ -86,7 +87,7 @@ export default function PublicEventPage() {
 
       const pythonData = await pythonRes.json();
       if (!pythonData.faces?.length) {
-        alert("No face detected. Try a clearer photo!");
+        showAlert("No face detected. Try a clearer photo!");
         setSearching(false);
         return;
       }
@@ -133,7 +134,7 @@ export default function PublicEventPage() {
       setFoundImages(searchData.results || []);
     } catch (err) {
       console.error(err);
-      alert("Search failed. Check if servers are running.");
+      showAlert("Search failed. Check if servers are running.");
     } finally {
       setSearching(false);
     }
@@ -475,6 +476,14 @@ export default function PublicEventPage() {
             {event.location && <span>✦ {event.location}</span>}
             {event.eventDate && <span>✦ {new Date(event.eventDate).toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}</span>}
           </div>
+          {event.description && (
+            <p style={{
+              fontFamily: "var(--font-body)", fontSize: 15, fontWeight: 300,
+              color: "var(--dim)", marginTop: 24, marginBottom: 0, maxWidth: 600, lineHeight: 1.6
+            }}>
+              {event.description}
+            </p>
+          )}
         </div>
 
         {/* Stats */}

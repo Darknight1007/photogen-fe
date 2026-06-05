@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { eventsApi } from "@/lib/api";
 import CustomCursor from "@/components/CustomCursor";
+import { showAlert } from "@/components/AlertModal";
 
 interface User { id: string; phone: string; name: string; email: string; role: string; avatar: string | null; }
 
@@ -44,7 +45,7 @@ export default function UserDashboard() {
     if (!eventCode.trim() || joining) return;
     setJoining(true);
     const { error } = await eventsApi.join(eventCode.trim());
-    if (error) { alert(error); setJoining(false); return; }
+    if (error) { showAlert(error); setJoining(false); return; }
     const { data } = await eventsApi.getMyJoinedEvents();
     if (data) setEvents(data.events);
     setEventCode("");

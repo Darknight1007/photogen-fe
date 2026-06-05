@@ -24,7 +24,12 @@ async function fetchApi<T>(
     const data = await response.json();
 
     if (!response.ok) {
-      return { error: data.error || 'Something went wrong' };
+      if (response.status === 401 && typeof window !== 'undefined') {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        window.location.href = '/';
+      }
+      return { error: data.error || data.message || 'Something went wrong' };
     }
 
     return { data };
@@ -37,7 +42,7 @@ async function fetchApi<T>(
 // Auth API
 export const authApi = {
   sendOtp: (phone: string) =>
-    fetchApi<{ message: string; isNewUser: boolean }>('/auth/send-otp', {
+    fetchApi<{ message: string; isNewUser: boolean; otp?: string }>('/auth/send-otp', {
       method: 'POST',
       body: JSON.stringify({ phone }),
     }),
