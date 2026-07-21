@@ -153,15 +153,15 @@ export default function UserLogin() {
       <CustomCursor />
 
       <nav className="phl-nav">
-        <Link href="/" className="nav-logo">
+        <div className="nav-logo">
           <div className="nav-mark">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ color: "var(--gold)" }}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
               <circle cx="12" cy="13" r="3" />
             </svg>
           </div>
-          <span className="nav-logo-text">PhotoGen</span>
-        </Link>
+          <span className="nav-logo-text">RushCam</span>
+        </div>
         <Link href="/photographer/login" style={{ fontFamily: "var(--font-mono)", fontSize: 11, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--muted)", textDecoration: "none", transition: "color 0.2s" }}>
           Photographer? →
         </Link>

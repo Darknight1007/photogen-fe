@@ -147,15 +147,15 @@ export default function UserDashboard() {
       `}</style>
 
       <nav className="phl-nav">
-        <Link href="/" className="nav-logo">
+        <div className="nav-logo">
           <div className="nav-mark">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ color: "var(--gold)" }}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
               <circle cx="12" cy="13" r="3" />
             </svg>
           </div>
-          <span className="nav-logo-text">PhotoGen</span>
-        </Link>
+          <span className="nav-logo-text">RushCam</span>
+        </div>
         <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
           <div style={{ width: 34, height: 34, borderRadius: 9, background: "rgba(212,175,55,0.07)", border: "1px solid rgba(212,175,55,0.3)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: 500, color: "var(--gold)" }}>
             {user.name?.charAt(0)?.toUpperCase()}

@@ -12,7 +12,19 @@ export default function BulkUploader({ eventId, onUploadComplete, onClose }: Bul
   const fileInputRef = useRef<HTMLInputElement>(null); const folderInputRef = useRef<HTMLInputElement>(null);
 
   const addFiles = useCallback((newFiles: FileList | File[]) => {
-    const imageFiles = Array.from(newFiles).filter((f) => f.type.startsWith("image/"));
+    const MAX_SIZE = 20 * 1024 * 1024;
+    let rejectedCount = 0;
+    const imageFiles = Array.from(newFiles).filter((f) => {
+      if (!f.type.startsWith("image/")) return false;
+      if (f.size > MAX_SIZE) {
+        rejectedCount++;
+        return false;
+      }
+      return true;
+    });
+    if (rejectedCount > 0) {
+      showAlert(`Skipped ${rejectedCount} file(s) that exceed the 20MB limit.`);
+    }
     setFiles((prev) => [...prev, ...imageFiles.map((file) => ({ id: `${Date.now()}-${Math.random().toString(36).slice(2)}`, file, preview: URL.createObjectURL(file), status: "pending" as const, progress: 0 }))]);
   }, []);
 
@@ -122,7 +134,7 @@ export default function BulkUploader({ eventId, onUploadComplete, onClose }: Bul
               style={{ border: "1px dashed var(--border2)", padding: "48px 32px", textAlign: "center", marginBottom: 24, background: "var(--bg3)", cursor: "pointer", transition: "border-color 0.2s" }}>
               <div style={{ fontSize: 36, opacity: 0.4, marginBottom: 12 }}>📸</div>
               <p style={{ fontFamily: "var(--font-display)", fontSize: 20, fontWeight: 400, color: "var(--cream)", marginBottom: 4 }}>Drop images here</p>
-              <p style={{ fontSize: 12, color: "var(--dim)", marginBottom: 20 }}>PNG, JPG, HEIC up to 50MB each</p>
+              <p style={{ fontSize: 12, color: "var(--dim)", marginBottom: 20 }}>PNG, JPG, HEIC up to 20MB each</p>
               <div style={{ display: "flex", justifyContent: "center", gap: 10 }}>
                 <button className="btn-gold" style={{ padding: "10px 20px", fontSize: 10 }} onClick={() => fileInputRef.current?.click()}>Select Files</button>
                 <button className="btn-outline" style={{ padding: "10px 20px", fontSize: 10 }} onClick={() => folderInputRef.current?.click()}>Select Folder</button>

@@ -6,6 +6,7 @@ import Link from "next/link";
 import { eventsApi } from "@/lib/api";
 import { QRCodeSVG } from "qrcode.react";
 import { showAlert } from "@/components/AlertModal";
+import { useToast, Toast } from "@/components/Toast";
 
 /* ─── Memoized photo card – prevents grid re-renders on tab/search state ─── */
 const PhotoCard = memo(function PhotoCard({
@@ -48,6 +49,7 @@ export default function PublicEventPage() {
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState<string | null>(null);
   const [lightbox, setLightbox] = useState<any>(null);
+  const { toast, show: showToast, dismiss: dismissToast } = useToast();
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [searching, setSearching] = useState(false);
@@ -143,8 +145,9 @@ export default function PublicEventPage() {
   const copy = useCallback((text: string, key: string) => {
     navigator.clipboard.writeText(text);
     setCopied(key);
+    showToast(key === "link" ? "Link copied!" : "Code copied!", "success");
     setTimeout(() => setCopied(null), 2000);
-  }, []);
+  }, [showToast]);
 
   const openLightbox = useCallback((img: any) => setLightbox(img), []);
 
@@ -161,10 +164,12 @@ export default function PublicEventPage() {
       <div className="spinner" style={{ borderTopColor: "#D4AF37", width: 32, height: 32, borderWidth: 3 }} />
     </div>
   );
+
   if (!event) return null;
 
   return (
     <>
+      <Toast toast={toast} onDismiss={dismissToast} />
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,300;1,400&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400&display=swap');
 
@@ -446,17 +451,17 @@ export default function PublicEventPage() {
               <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
             </svg>
           </button>
-          <Link href="/" className="nav-logo">
+          <div className="nav-logo">
             <div className="nav-mark">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" strokeWidth="1.5">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ color: "var(--gold)" }}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
                 <circle cx="12" cy="13" r="3" />
               </svg>
             </div>
-            <span style={{ fontFamily: "var(--font-display)", fontSize: 16, fontWeight: 600, color: "var(--cream)", letterSpacing: "0.03em" }}>
-              PhotoGen
+            <span className="nav-logo-text" style={{ fontFamily: "var(--font-display)", fontSize: 16, fontWeight: 600, color: "var(--cream)", letterSpacing: "0.03em" }}>
+              RushCam
             </span>
-          </Link>
+          </div>
         </div>
       </nav>
 
@@ -511,7 +516,7 @@ export default function PublicEventPage() {
                   <button className="icon-btn" onClick={() => copy(event.code, "code")}>
                     {copied === "code"
                       ? <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
-                      : <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 di2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+                      : <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
                     }
                   </button>
                 </div>
@@ -643,6 +648,51 @@ export default function PublicEventPage() {
               ))}
             </div>
           )}
+        </div>
+      </div>
+
+      {/* ── Danger zone ── */}
+      <div className="fade-up d4" style={{ padding: "0 52px 60px" }}>
+        <div style={{
+          fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.2em",
+          textTransform: "uppercase", color: "rgba(224,85,85,0.5)",
+          marginBottom: 16
+        }}>
+          ✦ Danger Zone
+        </div>
+        <div style={{
+          display: "flex", alignItems: "center", justifyContent: "space-between",
+          padding: "32px 40px", border: "1px solid rgba(224,85,85,0.15)",
+          borderRadius: "16px", background: "rgba(224,85,85,0.03)", position: "relative"
+        }}>
+          <div>
+            <div style={{ fontFamily: "var(--font-display)", fontSize: 18, fontWeight: 300, fontStyle: "italic", color: "var(--cream)", marginBottom: 6 }}>
+              Leave this event
+            </div>
+            <p style={{ fontSize: 13, fontWeight: 300, color: "var(--dim)", margin: 0 }}>
+              You will no longer be a participant and will lose access to this gallery.
+            </p>
+          </div>
+          <button
+            style={{
+              background: "none", border: "1px solid rgba(224,85,85,0.3)",
+              color: "#e05555", borderRadius: 22, cursor: "pointer",
+              fontFamily: "var(--font-mono)", fontSize: 10,
+              letterSpacing: "0.1em", textTransform: "uppercase",
+              padding: "10px 24px", transition: "all 0.2s"
+            }}
+            onMouseOver={(e) => { e.currentTarget.style.borderColor = "#e05555"; e.currentTarget.style.background = "rgba(224,85,85,0.07)"; }}
+            onMouseOut={(e) => { e.currentTarget.style.borderColor = "rgba(224,85,85,0.3)"; e.currentTarget.style.background = "none"; }}
+            onClick={async () => {
+              if (window.confirm("Are you sure you want to leave this event?")) {
+                const res = await eventsApi.leave(event.code);
+                if (res.error) showAlert(res.error);
+                else router.push("/user/dashboard");
+              }
+            }}
+          >
+            Leave Event
+          </button>
         </div>
       </div>
 

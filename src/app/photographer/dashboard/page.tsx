@@ -8,6 +8,7 @@ import { eventsApi, Event } from "@/lib/api";
 import CustomCursor from "@/components/CustomCursor";
 import EventDateTimePicker from "@/components/EventDateTimePicker";
 import { showAlert } from "@/components/AlertModal";
+import { useToast, Toast } from "@/components/Toast";
 
 /* ─── Global Styles ──────────────────────────────────────────────────────── */
 const Styles = () => (
@@ -97,6 +98,7 @@ const Styles = () => (
 interface User { id: string; phone: string; name: string; email: string; role: string; avatar: string | null; }
 
 export default function PhotographerDashboard() {
+  const { toast, show, dismiss } = useToast();
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
   const [events, setEvents] = useState<Event[]>([]);
@@ -157,16 +159,16 @@ export default function PhotographerDashboard() {
 
       {/* NAV */}
       <nav className="phl-nav">
-        <Link href="/" className="nav-logo">
+        <div className="nav-logo">
           <div className="nav-mark">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ color: "var(--gold)" }}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
               <circle cx="12" cy="13" r="3" />
             </svg>
           </div>
-          <span className="nav-logo-text">PhotoGen</span>
+          <span className="nav-logo-text">RushCam</span>
           <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: "0.15em", textTransform: "uppercase", color: "var(--gold3)", background: "rgba(212,175,55,0.06)", border: "1px solid rgba(212,175,55,0.15)", borderRadius: 20, padding: "2px 8px", marginLeft: 8 }}>Studio</span>
-        </Link>
+        </div>
         <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
           <div style={{ width: 34, height: 34, borderRadius: 9, background: "rgba(212,175,55,0.07)", border: "1px solid rgba(212,175,55,0.3)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: 500, color: "var(--gold)" }}>
             {user.name?.charAt(0)?.toUpperCase()}
@@ -287,7 +289,7 @@ export default function PhotographerDashboard() {
               ) : (
                 <div className="events-grid">
                   {activeEvents.map((event, i) => (
-                    <EventCard key={event.id} event={event} onUpdate={fetchEvents} index={i} />
+                    <EventCard key={event.id} event={event} onUpdate={fetchEvents} index={i} onCopy={() => show("Code copied!", "success")} />
                   ))}
                 </div>
               )}
@@ -311,7 +313,7 @@ export default function PhotographerDashboard() {
                   <div className="archived-grid-wrap">
                     <div className="events-grid">
                       {archivedEvents.map((event, i) => (
-                        <EventCard key={event.id} event={event} onUpdate={fetchEvents} index={i} />
+                        <EventCard key={event.id} event={event} onUpdate={fetchEvents} index={i} onCopy={() => show("Code copied!", "success")} />
                       ))}
                     </div>
                   </div>
@@ -328,12 +330,13 @@ export default function PhotographerDashboard() {
           onSuccess={() => { setShowCreate(false); fetchEvents(); }}
         />
       )}
+      <Toast toast={toast} onDismiss={dismiss} />
     </>
   );
 }
 
 /* ─── EVENT CARD ─────────────────────────────────────────────────────────── */
-function EventCard({ event, onUpdate, index }: { event: Event; onUpdate: () => void; index: number }) {
+function EventCard({ event, onUpdate, index, onCopy }: { event: Event; onUpdate: () => void; index: number; onCopy: () => void }) {
   const [menu, setMenu] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
@@ -458,7 +461,7 @@ function EventCard({ event, onUpdate, index }: { event: Event; onUpdate: () => v
           </div>
           <div className="ev-mini">
             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0" />
+              <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
             </svg>
             <strong>{event.participantCount}</strong> guests
           </div>
@@ -471,7 +474,7 @@ function EventCard({ event, onUpdate, index }: { event: Event; onUpdate: () => v
             <button
               className="icon-btn"
               title="Copy code"
-              onClick={(e) => { e.preventDefault(); navigator.clipboard.writeText(event.code); }}
+              onClick={(e) => { e.preventDefault(); navigator.clipboard.writeText(event.code); onCopy(); }}
             >
               <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />

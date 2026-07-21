@@ -107,7 +107,7 @@ function CustomCursor() {
   );
 }
 /* ═══════════════════════════════════════════════
-   APP MOCKUP — animated PhotoGen UI
+   APP MOCKUP — animated RushCam UI
 ═══════════════════════════════════════════════ */
 // Minimal person SVG for a photo tile
 function PersonSVG({ seed, highlight }: { seed: number; highlight: boolean }) {
@@ -215,7 +215,7 @@ function AppMockup() {
           {/* URL bar */}
           <div style={{ flex: 1, margin: "0 14px", background: "rgba(255,255,255,0.04)", border: "1px solid rgba(212,175,55,0.12)", borderRadius: 6, padding: "4px 10px", display: "flex", alignItems: "center", gap: 6 }}>
             <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="rgba(212,175,55,0.4)" strokeWidth="2"><rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0110 0v4" /></svg>
-            <span style={{ ...mono, fontSize: 9, color: "rgba(212,175,55,0.4)" }}>photogen.app/event/RAJ-2024</span>
+            <span style={{ ...mono, fontSize: 9, color: "rgba(212,175,55,0.4)" }}>rushcam.app/event/RAJ-2024</span>
           </div>
           <div style={{ ...mono, fontSize: 9, color: "rgba(212,175,55,0.3)" }}>●●●</div>
         </div>
@@ -228,7 +228,7 @@ function AppMockup() {
                 <circle cx="12" cy="13" r="3" />
               </svg>
             </div>
-            <span style={{ fontFamily: "var(--font-display)", fontSize: 12, color: "var(--cream)", fontWeight: 600 }}>PhotoGen</span>
+            <span style={{ fontFamily: "var(--font-display)", fontSize: 12, color: "var(--cream)", fontWeight: 600 }}>RushCam</span>
           </div>
           <div style={{ ...mono, fontSize: 9, color: "rgba(212,175,55,0.4)", background: "rgba(212,175,55,0.06)", border: "1px solid rgba(212,175,55,0.12)", borderRadius: 4, padding: "3px 8px" }}>
             Raj's Wedding · 847 photos
@@ -664,7 +664,7 @@ export default function Home() {
               <circle cx="12" cy="13" r="3" />
             </svg>
           </div>
-          <span className="nav-logo-text">PhotoGen</span>
+          <span className="nav-logo-text">RushCam</span>
         </div>
         <div className="nav-actions">
           <Link href="/user/login"><button className="btn-pill">Find Photos</button></Link>
@@ -777,7 +777,7 @@ export default function Home() {
                 <circle cx="12" cy="13" r="3" />
               </svg>
             </div>
-            <span style={{ fontFamily: "var(--font-display)", fontSize: 14, color: "var(--muted)" }}>PhotoGen</span>
+            <span style={{ fontFamily: "var(--font-display)", fontSize: 14, color: "var(--muted)" }}>RushCam</span>
           </div>
           <div style={{ fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: "0.1em", color: "var(--dim)" }}>
             © {new Date().getFullYear()} · AI-Powered Photo Discovery

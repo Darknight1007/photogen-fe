@@ -457,8 +457,9 @@ export default function EventDetailPage() {
   const copy = useCallback((t: string, k: string) => {
     navigator.clipboard.writeText(t);
     setCopied(k);
+    showToast(k === "link" ? "Link copied!" : "Code copied!", "success");
     setTimeout(() => setCopied(null), 2000);
-  }, []);
+  }, [showToast]);
 
   const toggle = useCallback((id: string) => {
     setSelected(p => { const s = new Set(p); s.has(id) ? s.delete(id) : s.add(id); return s; });
@@ -530,7 +531,7 @@ export default function EventDetailPage() {
               <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
             </svg>
           </button>
-          <Link href="/" className="nav-logo">
+          <div className="nav-logo">
             <div className="nav-mark">
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" strokeWidth="1.5">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
@@ -538,10 +539,10 @@ export default function EventDetailPage() {
               </svg>
             </div>
             <span className="nav-logo-text">
-              PhotoGen{" "}
+              RushCam{" "}
               <span style={{ color: "var(--gold3)", fontWeight: 400 }}>// Studio</span>
             </span>
-          </Link>
+          </div>
         </div>
 
         <div style={{ display: "flex", gap: 10 }}>

@@ -192,6 +192,12 @@ export const eventsApi = {
       body: JSON.stringify({ code }),
     }),
 
+  leave: (code: string) =>
+    fetchApi<{ message: string }>('/events/leave', {
+      method: 'POST',
+      body: JSON.stringify({ code }),
+    }),
+
   getMyJoinedEvents: () =>
     fetchApi<{ events: Event[] }>('/events/my'),
 
